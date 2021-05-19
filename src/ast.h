@@ -12,7 +12,6 @@ typedef struct var {
     char* name;
     struct var* next;
 } var_t;
-extern var_t* curr_locals;
 
 typedef struct branch {
     struct expr* cond;
@@ -21,7 +20,7 @@ typedef struct branch {
 } branch_t;
 
 typedef struct {
-    var_t* target;
+    char* target;
     struct expr* expr;
 } assign_t;
 
@@ -49,7 +48,7 @@ typedef enum {
     E_ADD, E_SUB, E_NEG,
 } expr_e;
 typedef union {
-    var_t* ident;
+    char* ident;
     struct expr* expr;
     binop_t* binop;
     int digit;

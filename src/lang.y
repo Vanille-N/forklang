@@ -20,8 +20,6 @@ void yyerror (const char *s) {
 /****************************************************************************/
 /* All data pertaining to the programme are accessible from these two vars. */
 
-var_t* globals;
-var_t* curr_locals;
 prog_t* program;
 
 %}
@@ -46,7 +44,7 @@ prog_t* program;
     expr_e bin;
 }
 
-%type <var> vars decls
+%type <var> vars glob_decls loc_decls
 %type <proc> procs procdef
 %type <check> checks reach
 %type <stmt> stmts stmt
@@ -73,12 +71,11 @@ prog_t* program;
 
 %%
 
-prog : decls procs checks { program = make_prog($1, $2, $3); }
+prog : glob_decls procs checks { program = make_prog($1, $2, $3); }
      ;
 
-decls : DECL vars { $$ = $2; }
-      | { $$ = NULL; }
-      ;
+glob_decls : DECL vars { $$ = $2; }
+           ;
 
 vars : IDENT SEQ { $$ = make_ident($1); }
      | IDENT COMMA vars { ($$ = make_ident($1))->next = $3; }
@@ -89,8 +86,12 @@ procs : procdef { $$ = $1; }
       | procdef procs { ($$ = $1)->next = $2; }
       ;
 
-procdef : PROC IDENT decls stmts END { $$ = make_proc($2, $3, $4); }
+procdef : PROC IDENT loc_decls stmts END { $$ = make_proc($2, $3, $4); }
         ;
+
+loc_decls : DECL vars { $$ = $2; }
+          | { $$ = NULL; }
+          ;
 
 stmts : stmt { $$ = $1; }
       | stmt SEQ stmts { ($$ = $1)->next = $3; }

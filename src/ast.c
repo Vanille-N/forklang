@@ -1,10 +1,6 @@
 #include "ast.h"
 
-var_t* find_variable (var_t* curr, char* search) {
-    return curr;
-}
-
-// Builders
+// Parse-time expression builders
 
 var_t* make_ident (char* s) {
     var_t* v = malloc(sizeof(var_t));
@@ -23,7 +19,7 @@ prog_t* make_prog (var_t* v, proc_t* p, check_t* c) {
 
 assign_t* make_assign (char* s, expr_t* e) {
     assign_t* assign = malloc(sizeof(assign_t));
-    assign->target = find_variable(curr_locals, s);
+    assign->target = s;
     assign->expr = e;
     return assign;
 }
@@ -102,7 +98,7 @@ expr_u null_as_e () {
 
 expr_u str_as_e (char* ident) {
     expr_u val;
-    val.ident = find_variable(curr_locals, ident);
+    val.ident = ident;
     return val;
 }
 
