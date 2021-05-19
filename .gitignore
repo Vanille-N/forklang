@@ -1,0 +1,8 @@
+# Compilation results
+build
+lang
+
+# Aux files
+report.bison
+.gdb_history
+
