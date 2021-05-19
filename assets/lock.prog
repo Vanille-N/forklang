@@ -1,0 +1,47 @@
+// Un processus manipule un lock avec deux opérations: il peut l'obtenir
+// et relâcher. Ces opérations sont représentés en ajoutant +1 ou -1 à
+// la variable lock.
+
+// Il est interdit d'obtenir le lock deux fois de suite, ou de le relâcher
+// deux fois de suite. Il est aussi interdit de garder le lock à jamais.
+// Il s'agit donc de vérifier si le programme respecte ces règles.
+
+// Inspiré d'un exemple de Ball et Rajamani dans «The SLAM Toolkit»
+//	https://link.springer.com/content/pdf/10.1007/3-540-44585-4_25.pdf
+
+var lock,fin;
+
+proc p
+	var todo;
+
+	lock := 1;	// lock non acquis
+	todo := 1;
+
+	do
+	:: todo == 0 -> break
+	:: else ->
+		todo := 0;
+
+		// obtenir le lock
+		lock := lock+1;
+
+		if	// décision non-déterministe
+		:: 1 -> skip
+		:: 1 ->
+			// relâcher le lock
+			lock := lock-1;
+			todo := 1
+		fi
+	od;
+
+	// relâcher le lock
+	lock := lock-1;
+	fin := 1
+end
+
+reach lock == 0		// deux relâchements de suite, non accessible
+reach lock == 1		// accessible
+reach lock == 2		// accessible
+reach lock == 3		// deux obtentions de suite, non accessible
+reach fin && !(lock == 1)	// lock non relâché à la fin, non accessible
+

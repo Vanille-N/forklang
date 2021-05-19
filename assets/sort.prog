@@ -1,0 +1,40 @@
+// algorithme simple de tri
+
+var x,y,z;
+var fin;
+
+proc p
+        var tmp;
+
+        // choisir une permutation aléatoire
+        if
+        :: 1 -> x := 0; y := 1; z := 2
+        :: 1 -> x := 1; y := 0; z := 2
+        :: 1 -> x := 0; y := 2; z := 1
+        :: 1 -> x := 2; y := 0; z := 1
+        :: 1 -> x := 1; y := 2; z := 0
+        :: 1 -> x := 2; y := 1; z := 0
+        fi;
+
+        // trier x,y,z
+        if
+        :: x > y -> tmp := x; x := y; y := tmp
+        :: else -> skip
+        fi;
+
+        if
+        :: y > z -> tmp := y; y := z; z := tmp
+        :: else -> skip
+        fi;
+
+        if
+        :: x > y -> tmp := x; x := y; y := tmp
+        :: else -> skip
+        fi;
+
+        fin := 1
+end
+
+reach fin && x > y      // non accessible
+reach fin && y > z      // non accessible
+reach fin && x > z      // non accessible
