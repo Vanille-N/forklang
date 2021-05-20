@@ -16,11 +16,11 @@
 // to their continuation. This is done with a skipto/breakto mechanism,
 // explained in more detail below.
 
-// Variables
 uint nbglob;
 uint nbloc;
 var_t* globs;
 var_t* locs;
+char* procname;
 
 rprog_t* tr_prog (prog_t* in) {
     rprog_t* out = malloc(sizeof(rprog_t));
@@ -30,9 +30,7 @@ rprog_t* tr_prog (prog_t* in) {
     out->nbglob = tr_var_list(&out->globs, in->globs);
     nbglob = out->nbglob;
     globs = out->globs;
-    // Write processes
     out->nbproc = tr_proc_list(&out->procs, in->procs);
-    // Write checks
     out->nbcheck = tr_check_list(&out->checks, in->checks);
     return out;
 }
@@ -66,6 +64,7 @@ uint tr_check_list (rcheck_t** loc, check_t* in) {
     // no local variables during checks
     nbloc = 0;
     locs = NULL;
+    procname = "reachability checks";
 
     uint n = 0;
     check_t* cur = in;
@@ -81,18 +80,9 @@ rexpr_t* tr_expr (expr_t* in) {
     rexpr_t* out = malloc(sizeof(rexpr_t));
     out->type = in->type;
     switch (in->type) {
-        case E_VAR: {
-            var_t* find;
-            if ((find = locate_var(in->val.ident, nbloc, locs))) {
-                out->val.var = find;
-            } else if ((find = locate_var(in->val.ident, nbglob, globs))) {
-                out->val.var = find;
-            } else {
-                printf("Variable %s is not declared\n", in->val.ident);
-                exit(1);
-            }
+        case E_VAR:
+            out->val.var = locate_var(in->val.ident);
             break;
-        }
         case E_VAL:
             out->val.digit = in->val.digit;
             break;
@@ -116,13 +106,20 @@ rexpr_t* tr_expr (expr_t* in) {
     return out;
 }
 
-var_t* locate_var (char* ident, uint nb, var_t* vars) {
-    for (uint i = 0; i < nb; i++) {
-        if (0 == strcmp(ident, vars[i].name)) {
-            return vars + i;
+var_t* locate_var (char* ident) {
+    for (uint i = 0; i < nbloc; i++) {
+        if (0 == strcmp(ident, locs[i].name)) {
+            return locs + i;
         }
     }
-    return NULL;
+    for (uint i = 0; i < nbglob; i++) {
+        if (0 == strcmp(ident, globs[i].name)) {
+            return globs + i;
+        }
+    }
+    printf("In %s\n", procname);
+    printf("Variable %s is not declared\n", ident);
+    exit(1);
 }
 
 uint tr_proc_list (rproc_t** loc, proc_t* in) {
@@ -141,6 +138,7 @@ uint tr_proc_list (rproc_t** loc, proc_t* in) {
         // setup local variables just for this translation
         nbloc = out->nbloc;
         locs = out->locs;
+        procname = out->name;
         tr_stmt(
             &out->entrypoint, cur->stmts,
             true, // advances to the end
@@ -152,6 +150,13 @@ uint tr_proc_list (rproc_t** loc, proc_t* in) {
     return n;
 }
 
+rassign_t* tr_assign (assign_t* in) {
+    rassign_t* out = malloc(sizeof(rassign_t));
+    out->target = locate_var(in->target);
+    out->expr = tr_expr(in->value);
+    return out;
+}
+
 void tr_stmt (
     rstep_t** out, stmt_t* in,
     bool advance, rstep_t* skipto, rstep_t* breakto
@@ -161,17 +166,7 @@ void tr_stmt (
     (*out)->id = in->id;
     switch (in->type) {
         case S_ASSIGN:
-            (*out)->assign = malloc(sizeof(rassign_t));
-            var_t* find;
-            if ((find = locate_var(in->val.assign->target, nbloc, locs))) {
-                (*out)->assign->target = find;
-            } else if ((find = locate_var(in->val.assign->target, nbglob, globs))) {
-                (*out)->assign->target = find;
-            } else {
-                printf("Variable %s is not declared\n", in->val.assign->target);
-                exit(1);
-            }
-            (*out)->assign->expr = tr_expr(in->val.assign->value);
+            (*out)->assign = tr_assign(in->val.assign);
             // fallthrough
         case S_SKIP:
         case S_BREAK:
@@ -181,12 +176,14 @@ void tr_stmt (
                 (*out)->unguarded = malloc(sizeof(rstep_t));
                 tr_stmt(
                     &((*out)->unguarded), in->next,
-                    advance, skipto, breakto);
-                (*out)->advance = true;
+                    advance, skipto, breakto); // normal transfer
+                (*out)->advance = true; // advances to `next`
             } else if (in->type == S_BREAK) {
+                // by definition the successor of a S_BREAK is `breakto`
                 (*out)->unguarded = breakto;
-                (*out)->advance = true;
+                (*out)->advance = true; // break is always a progress
             } else {
+                // similarly the successor of a S_SKIP is `skipto`
                 (*out)->unguarded = skipto;
                 (*out)->advance = advance;
             }
@@ -201,11 +198,16 @@ void tr_stmt (
                     advance, skipto, breakto);
                 (*out)->unguarded = tr_branch_list(
                     &((*out)->nbguarded), &((*out)->guarded), in->val.branch,
-                    false, *out, next);
+                    false, // when inside a `do`, skipping does not necessarily advance
+                    // the computation
+                    *out, // skip to self
+                    next); // break to successor
             } else {
                 (*out)->unguarded = tr_branch_list(
                     &((*out)->nbguarded), &((*out)->guarded), in->val.branch,
-                    false, *out, skipto);
+                    false, // same as above
+                    *out, // skip to self
+                    skipto); // break to parent's successor
             }
             break;
         case S_IF:
@@ -218,17 +220,24 @@ void tr_stmt (
                     advance, skipto, breakto);
                 (*out)->unguarded = tr_branch_list(
                     &((*out)->nbguarded), &((*out)->guarded), in->val.branch,
-                    true, next, breakto);
+                    true, // skip is a progress since it can exit the `if`
+                    next, // continue to successor
+                    breakto); // still break out of last loop
             } else {
                 (*out)->unguarded = tr_branch_list(
                     &((*out)->nbguarded), &((*out)->guarded), in->val.branch,
-                    advance, skipto, breakto);
+                    advance, // propagate, branches inside an `if`
+                    // make the same progress as the `if` itself
+                    skipto,
+                    breakto);
             }   
             break;
         default: UNREACHABLE();
     }
 }
 
+// Returns the possible else clause so that
+// the caller can set it as the unguarded branch
 rstep_t* tr_branch_list (
     uint* nb, rguard_t** loc, branch_t* in,
     bool advance, rstep_t* skipto, rstep_t* breakto

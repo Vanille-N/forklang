@@ -99,7 +99,7 @@ rprog_t* tr_prog (prog_t* in);
 uint tr_var_list (var_t** loc, var_t* in);
 uint tr_check_list (rcheck_t** loc, check_t* in);
 rexpr_t* tr_expr (expr_t* in);
-var_t* locate_var (char* ident, uint nb, var_t* vars);
+var_t* locate_var (char* ident);
 uint tr_proc_list (rproc_t** loc, proc_t* in);
 
 void tr_stmt (
