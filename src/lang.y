@@ -14,13 +14,17 @@ int yylex ();
 
 void yyerror (const char *s) {
 	fflush(stdout);
-	fprintf(stderr, "%s\nat line %d", s, yylineno);
+	fprintf(stderr, "%s\nat line %d:%d", s, yylineno);
 }
 
-/****************************************************************************/
-/* All data pertaining to the programme are accessible from these two vars. */
+/**********************************/
+/* All output data available here */
 
 prog_t* program;
+
+/* Help variable */
+uint unique_var_id;
+uint unique_stmt_id;
 
 %}
 
@@ -71,15 +75,19 @@ prog_t* program;
 
 %%
 
-prog : glob_decls procs checks { program = make_prog($1, $2, $3); }
+prog : glob_decls procs checks {
+        program = make_prog($1, $2, $3);
+        program->nbvar = unique_var_id;
+        program->nbstmt = unique_stmt_id;
+     }
      ;
 
 glob_decls : DECL vars { $$ = $2; }
            ;
 
-vars : IDENT SEQ { $$ = make_ident($1); }
-     | IDENT COMMA vars { ($$ = make_ident($1))->next = $3; }
-     | IDENT SEQ DECL vars { ($$ = make_ident($1))->next = $4; }
+vars : IDENT SEQ { $$ = make_ident($1, unique_var_id++); }
+     | IDENT COMMA vars { ($$ = make_ident($1, unique_var_id++))->next = $3; }
+     | IDENT SEQ DECL vars { ($$ = make_ident($1, unique_var_id++))->next = $4; }
      ;
 
 procs : procdef { $$ = $1; }
@@ -97,14 +105,14 @@ stmts : stmt { $$ = $1; }
       | stmt SEQ stmts { ($$ = $1)->next = $3; }
       ;
 
-stmt : IDENT ASSIGN expr { $$ = make_stmt(S_ASSIGN, assign_as_s(make_assign($1, $3))); }
-     | DO BRANCH branches OD { $$ = make_stmt(S_DO, branch_as_s($3)); }
-     | IF BRANCH branches FI { $$ = make_stmt(S_IF, branch_as_s($3)); }
-     | BREAK { $$ = make_stmt(S_BREAK, null_as_s()); }
-     | SKIP { $$ = make_stmt(S_SKIP, null_as_s()); }
+stmt : IDENT ASSIGN expr { $$ = make_stmt(S_ASSIGN, assign_as_s(make_assign($1, $3)), unique_stmt_id++); }
+     | DO BRANCH branches OD { $$ = make_stmt(S_DO, branch_as_s($3), unique_stmt_id++); }
+     | IF BRANCH branches FI { $$ = make_stmt(S_IF, branch_as_s($3), unique_stmt_id++); }
+     | BREAK { $$ = make_stmt(S_BREAK, null_as_s(), unique_stmt_id++); }
+     | SKIP { $$ = make_stmt(S_SKIP, null_as_s(), unique_stmt_id++); }
      ;
 
-branches : branch { ($$ = $1)->next = make_branch(NULL, make_stmt(S_SKIP, null_as_s())); }
+branches : branch { $$ = $1; }
          | else { $$ = $1; }
          | branch BRANCH branches { ($$ = $1)->next = $3; }
          ;
@@ -148,6 +156,8 @@ reach : REACH expr { $$ = make_check($2); }
 int main (int argc, char **argv) {
 	if (argc <= 1) { yyerror("no file specified"); exit(1); }
 	yyin = fopen(argv[1],"r");
+    unique_var_id = 0;
+    unique_stmt_id = 0;
 	if (!yyparse()) {
         pp_prog(program);
         rprog_t* repr = tr_prog(program);

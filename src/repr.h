@@ -13,16 +13,20 @@ struct rexpr;
 struct rstep;
 struct rguard;
 
+// a variable with its value
 typedef struct {
     char* name;
     int value;
+    uint id;
 } rvar_t;
 
-// an expression
+// an binary operation
 typedef struct {
     struct rexpr* lhs;
     struct rexpr* rhs;
 } rbinop_t;
+
+// an expression
 typedef union {
     rvar_t* var;
     unsigned digit;
@@ -34,6 +38,7 @@ typedef struct rexpr {
     rexpr_u val;
 } rexpr_t;
 
+// an assignment operation
 typedef struct {
     rvar_t* target;
     rexpr_t* expr;
@@ -41,11 +46,12 @@ typedef struct {
 
 // represents a choice (possibly only one solution)
 typedef struct rstep {
-    bool advance;
-    rassign_t* assign;
+    bool advance; // avoid looping
+    rassign_t* assign; // maybe assign a new value
     unsigned nbguarded;
-    struct rguard* guarded;
-    struct rstep* unguarded;
+    struct rguard* guarded; // choose any if satisfied
+    struct rstep* unguarded; // otherwise go here
+    uint id;
 } rstep_t;
 
 // represents a guarded instruction
@@ -63,40 +69,42 @@ typedef struct rguard {
 // -> else if unguarded is not NULL execute it
 // -> else the process is blocked
 
+// a procedure
 typedef struct {
     char* name;
-    unsigned nbvar;
+    uint nbvar;
     rvar_t* vars;
     rstep_t* entrypoint;
 } rproc_t;
 
+// a reachability test
 typedef struct {
     rexpr_t* cond;
 } rcheck_t;
 
+// a full program
 typedef struct {
-    unsigned nbvar;
+    uint nbvar;
     rvar_t* vars;
-    unsigned nbproc;
+    uint nbproc;
     rproc_t* procs;
-    unsigned nbcheck;
+    uint nbcheck;
     rcheck_t* checks;
+    uint nbstep;
 } rprog_t;
 
 rprog_t* tr_prog (prog_t* in);
 void tr_var_list (uint* nb, rvar_t** loc, var_t* in);
-void tr_check_list (uint* nb, rcheck_t** loc, check_t* in, uint nbvar, rvar_t* vars);
-rexpr_t* tr_expr (expr_t* in, uint nbglob, rvar_t* globs, uint nbloc, rvar_t* locs);
+void tr_check_list (uint* nb, rcheck_t** loc, check_t* in);
+rexpr_t* tr_expr (expr_t* in);
 rvar_t* locate_var (char* ident, uint nb, rvar_t* locs);
-void tr_proc_list (uint* nb, rproc_t** loc, proc_t* in, uint nbglob, rvar_t* globs);
+void tr_proc_list (uint* nb, rproc_t** loc, proc_t* in);
 
 void tr_stmt (
     rstep_t** out, stmt_t* in,
-    bool advance, rstep_t* skipto, rstep_t* breakto,
-    uint nbglob, rvar_t* globs, uint nbloc, rvar_t* locs);
+    bool advance, rstep_t* skipto, rstep_t* breakto);
 rstep_t* tr_branch_list (
     uint* nb, rguard_t** loc, branch_t* in,
-    bool advance, rstep_t* skipto, rstep_t* breakto,
-    uint nbglob, rvar_t* globs, uint nbloc, rvar_t* locs);
+    bool advance, rstep_t* skipto, rstep_t* breakto);
 
 #endif // REPR_H

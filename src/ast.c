@@ -2,11 +2,12 @@
 
 // Parse-time expression builders
 
-var_t* make_ident (char* s) {
-    var_t* v = malloc(sizeof(var_t));
-    v->name = s;
-    v->next = NULL;
-    return v;
+var_t* make_ident (char* s, uint id) {
+    var_t* var = malloc(sizeof(var_t));
+    var->name = s;
+    var->next = NULL;
+    var->id = id;
+    return var;
 }
 
 prog_t* make_prog (var_t* v, proc_t* p, check_t* c) {
@@ -50,11 +51,12 @@ stmt_u null_as_s () {
     return val;
 }
 
-stmt_t* make_stmt (stmt_e type, stmt_u val) {
+stmt_t* make_stmt (stmt_e type, stmt_u val, uint id) {
     stmt_t* stmt = malloc(sizeof(stmt_t));
     stmt->type = type;
     stmt->val = val;
     stmt->next = NULL;
+    stmt->id = id;
     return stmt;
 }
 

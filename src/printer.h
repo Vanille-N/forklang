@@ -19,8 +19,9 @@ typedef unsigned uint;
 /***************************************************************************/
 /* pretty-printer                                                          */
 
-void pp_stmt (uint, stmt_t*);
 void pp_indent (uint num);
+
+void pp_stmt (uint, stmt_t*);
 void pp_var (uint indent, var_t* var);
 const char* str_of_expr_e (expr_e e);
 void pp_expr (expr_t* expr);

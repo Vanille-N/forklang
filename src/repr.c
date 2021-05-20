@@ -2,7 +2,6 @@
 
 #include "printer.h"
 
-
 #define UNREACHABLE() { \
     fflush(stdout); \
     fprintf(stderr, "\n\nFatal: Entered unreachable code in file %s at %s:%d", \
@@ -12,14 +11,23 @@
 
 // Translate from ast to repr
 
+// variables
+uint nbglob;
+uint nbloc;
+rvar_t* globs;
+rvar_t* locs;
+
 rprog_t* tr_prog (prog_t* in) {
     rprog_t* out = malloc(sizeof(rprog_t));
     out->nbvar = 0;
     tr_var_list(&out->nbvar, &out->vars, in->vars);
+    nbglob = out->nbvar;
+    globs = out->vars;
     out->nbproc = 0;
-    tr_proc_list(&out->nbproc, &out->procs, in->procs, out->nbvar, out->vars);
+    tr_proc_list(&out->nbproc, &out->procs, in->procs);
     out->nbcheck = 0;
-    tr_check_list(&out->nbcheck, &out->checks, in->checks, out->nbvar, out->vars);
+    tr_check_list(&out->nbcheck, &out->checks, in->checks);
+    out->nbstep = in->nbstmt;
     return out;
 }
 
@@ -29,22 +37,25 @@ void tr_var_list (uint* nb, rvar_t** loc, var_t* in) {
         tr_var_list(nb, loc, in->next);
         (*loc)[n].name = in->name;
         (*loc)[n].value = 0;
+        (*loc)[n].id = in->id;
     } else {
         *loc = malloc(*nb * sizeof(rvar_t));
     }
 }
 
-void tr_check_list (uint* nb, rcheck_t** loc, check_t* in, uint nbvar, rvar_t* vars) {
+void tr_check_list (uint* nb, rcheck_t** loc, check_t* in) {
     if (in) {
         uint n = (*nb)++;
-        tr_check_list(nb, loc, in->next, nbvar, vars);
-        (*loc)[n].cond = tr_expr(in->cond, nbvar, vars, 0, NULL);
+        tr_check_list(nb, loc, in->next);
+        nbloc = 0;
+        locs = NULL;
+        (*loc)[n].cond = tr_expr(in->cond);
     } else {
         *loc = malloc(*nb * sizeof(rcheck_t));
     }
 }
 
-rexpr_t* tr_expr (expr_t* in, uint nbglob, rvar_t* globs, uint nbloc, rvar_t* locs) {
+rexpr_t* tr_expr (expr_t* in) {
     rexpr_t* out = malloc(sizeof(rexpr_t));
     out->type = in->type;
     switch (in->type) {
@@ -70,12 +81,12 @@ rexpr_t* tr_expr (expr_t* in, uint nbglob, rvar_t* globs, uint nbloc, rvar_t* lo
         case E_ADD:
         case E_SUB:
             out->val.binop = malloc(sizeof(rbinop_t));
-            out->val.binop->lhs = tr_expr(in->val.binop->lhs, nbglob, globs, nbloc, locs);
-            out->val.binop->rhs = tr_expr(in->val.binop->rhs, nbglob, globs, nbloc, locs);
+            out->val.binop->lhs = tr_expr(in->val.binop->lhs);
+            out->val.binop->rhs = tr_expr(in->val.binop->rhs);
             break;
         case E_NOT:
         case E_NEG:
-            out->val.subexpr = tr_expr(in->val.subexpr, nbglob, globs, nbloc, locs);
+            out->val.subexpr = tr_expr(in->val.subexpr);
             break;
         default: UNREACHABLE();
     }
@@ -91,18 +102,19 @@ rvar_t* locate_var (char* ident, uint nb, rvar_t* locs) {
     return NULL;
 }
 
-void tr_proc_list (uint* nb, rproc_t** loc, proc_t* in, uint nbglob, rvar_t* globs) {
+void tr_proc_list (uint* nb, rproc_t** loc, proc_t* in) {
     if (in) {
         uint n = (*nb)++;
-        tr_proc_list(nb, loc, in->next, nbglob, globs);
+        tr_proc_list(nb, loc, in->next);
         rproc_t* curr = &(*loc)[n];
         curr->name = in->name;
         curr->nbvar = 0;
         tr_var_list(&(curr->nbvar), &(curr->vars), in->vars);
+        nbloc = curr->nbvar;
+        locs = curr->vars;
         tr_stmt(
             &curr->entrypoint, in->stmts,
-            true, NULL, NULL,
-            nbglob, globs, curr->nbvar, curr->vars);
+            true, NULL, NULL);
     } else {
         *loc = malloc(*nb * sizeof(rproc_t));
     }
@@ -110,11 +122,11 @@ void tr_proc_list (uint* nb, rproc_t** loc, proc_t* in, uint nbglob, rvar_t* glo
 
 void tr_stmt (
     rstep_t** out, stmt_t* in,
-    bool advance, rstep_t* skipto, rstep_t* breakto,
-    uint nbglob, rvar_t* globs, uint nbloc, rvar_t* locs
+    bool advance, rstep_t* skipto, rstep_t* breakto
 ) {
     *out = malloc(sizeof(rstep_t));
     (*out)->assign = NULL;
+    (*out)->id = in->id;
     switch (in->type) {
         case S_ASSIGN:
             (*out)->assign = malloc(sizeof(rassign_t));
@@ -127,7 +139,7 @@ void tr_stmt (
                 printf("Variable %s is not declared\n", in->val.assign->target);
                 exit(1);
             }
-            (*out)->assign->expr = tr_expr(in->val.assign->expr, nbloc, locs, nbglob, globs);
+            (*out)->assign->expr = tr_expr(in->val.assign->expr);
             // fallthrough
         case S_SKIP:
         case S_BREAK:
@@ -137,8 +149,7 @@ void tr_stmt (
                 (*out)->unguarded = malloc(sizeof(rstep_t));
                 tr_stmt(
                     &((*out)->unguarded), in->next,
-                    advance, skipto, breakto,
-                    nbglob, globs, nbloc, locs);
+                    advance, skipto, breakto);
                 (*out)->advance = true;
             } else if (in->type == S_BREAK) {
                 (*out)->unguarded = breakto;
@@ -155,17 +166,14 @@ void tr_stmt (
                 rstep_t* next = malloc(sizeof(rstep_t));
                 tr_stmt(
                     &next, in->next,
-                    advance, skipto, breakto,
-                    nbglob, globs, nbloc, locs);
+                    advance, skipto, breakto);
                 (*out)->unguarded = tr_branch_list(
                     &((*out)->nbguarded), &((*out)->guarded), in->val.branch,
-                    false, *out, next,
-                    nbglob, globs, nbloc, locs);
+                    false, *out, next);
             } else {
                 (*out)->unguarded = tr_branch_list(
                     &((*out)->nbguarded), &((*out)->guarded), in->val.branch,
-                    false, *out, skipto,
-                    nbglob, globs, nbloc, locs);
+                    false, *out, skipto);
             }
             break;
         case S_IF:
@@ -175,17 +183,14 @@ void tr_stmt (
                 rstep_t* next = malloc(sizeof(rstep_t));
                 tr_stmt(
                     &next, in->next,
-                    advance, skipto, breakto,
-                    nbglob, globs, nbloc, locs);
+                    advance, skipto, breakto);
                 (*out)->unguarded = tr_branch_list(
                     &((*out)->nbguarded), &((*out)->guarded), in->val.branch,
-                    true, next, breakto,
-                    nbglob, globs, nbloc, locs);
+                    true, next, breakto);
             } else {
                 (*out)->unguarded = tr_branch_list(
                     &((*out)->nbguarded), &((*out)->guarded), in->val.branch,
-                    advance, skipto, breakto,
-                    nbglob, globs, nbloc, locs);
+                    advance, skipto, breakto);
             }   
             break;
         default: UNREACHABLE();
@@ -194,21 +199,18 @@ void tr_stmt (
 
 rstep_t* tr_branch_list (
     uint* nb, rguard_t** loc, branch_t* in,
-    bool advance, rstep_t* skipto, rstep_t* breakto,
-    uint nbglob, rvar_t* globs, uint nbloc, rvar_t* locs
+    bool advance, rstep_t* skipto, rstep_t* breakto
 ) {
     if (in) {
         if (in->cond) {
             uint n = (*nb)++;
             rstep_t* end = tr_branch_list(
                 nb, loc, in->next,
-                advance, skipto, breakto,
-                nbglob, globs, nbloc, locs);
-            (*loc)[n].cond = tr_expr(in->cond, nbglob, globs, nbloc, locs);
+                advance, skipto, breakto);
+            (*loc)[n].cond = tr_expr(in->cond);
             tr_stmt(
                 &((*loc)[n].next), in->stmt,
-                advance, skipto, breakto,
-                nbglob, globs, nbloc, locs);
+                advance, skipto, breakto);
             return end;
         } else {
             uint n = *nb;
@@ -216,8 +218,7 @@ rstep_t* tr_branch_list (
             rstep_t* end = malloc(sizeof(rstep_t));
             tr_stmt(
                 &end, in->stmt,
-                advance, skipto, breakto,
-                nbglob, globs, nbloc, locs);
+                advance, skipto, breakto);
             return end;
         }
     } else {
