@@ -1,5 +1,14 @@
 #include "printer.h"
 
+const char* RED = "\e[1;31m";
+const char* GREEN = "\e[0;32m";
+const char* BLUE = "\e[1;34m";
+const char* PURPLE = "\e[1;35m";
+const char* CYAN = "\e[1;36m";
+const char* YELLOW = "\e[1;33m";
+const char* BLACK = "\e[0;90m";
+const char* RESET = "\e[0m";
+
 void pp_stmt (uint, stmt_t*);
 
 void pp_indent (uint num) {
@@ -11,7 +20,7 @@ void pp_indent (uint num) {
 void pp_var (uint indent, var_t* var) {
     if (var) {
         pp_indent(indent);
-        printf("VAR [%s]\n", var->name);
+        printf("%sVAR %s[%s]%s\n", PURPLE, RED, var->name, RESET);
         pp_var(indent, var->next);
     }
 }
@@ -36,10 +45,10 @@ const char* str_of_expr_e (expr_e e) {
 void pp_expr (expr_t* expr) {
     switch (expr->type) {
         case E_VAR:
-            printf("(%s)", expr->val.ident);
+            printf("%s(%s%s%s)%s", GREEN, RED, expr->val.ident, GREEN, RESET);
             break;
         case E_VAL:
-            printf("(%d)", expr->val.digit);
+            printf("%s(%d)%s", GREEN, expr->val.digit, RESET);
             break;
         case E_LESS:
         case E_GREATER:
@@ -48,17 +57,17 @@ void pp_expr (expr_t* expr) {
         case E_OR:
         case E_ADD:
         case E_SUB:
-            printf("(%s ", str_of_expr_e(expr->type));
+            printf("%s(%s%s ", GREEN, YELLOW, str_of_expr_e(expr->type));
             pp_expr(expr->val.binop->lhs);
             printf(" ");
             pp_expr(expr->val.binop->rhs);
-            printf(")");
+            printf("%s)%s", GREEN, RESET);
             break;
         case E_NOT:
         case E_NEG:
-            printf("(%s ", str_of_expr_e(expr->type));
+            printf("%s(%s%s ", GREEN, YELLOW, str_of_expr_e(expr->type));
             pp_expr(expr->val.subexpr);
-            printf(")");
+            printf("%s)%s", GREEN, RESET);
             break;
         default:
             UNREACHABLE();
@@ -68,20 +77,20 @@ void pp_expr (expr_t* expr) {
 void pp_branch (uint indent, branch_t* branch) {
     if (branch) {
         pp_indent(indent);
-        printf("WHEN ");
         if (branch->cond) {
+            printf("%sWHEN ", CYAN);
             pp_expr(branch->cond);
         } else {
-            printf("Else");
+            printf("%sELSE", CYAN);
         }
-        printf("\n");
+        printf("\n%s", RESET);
         pp_stmt(indent+1, branch->stmt);
         pp_branch(indent, branch->next);
     }
 }
 
 void pp_assign (uint indent, assign_t* assign) {
-    printf("SET [%s] <- ", assign->target);
+    printf("SET %s[%s]%s <- ", RED, assign->target, RESET);
     pp_expr(assign->expr);
     printf("\n");
 }
@@ -89,16 +98,16 @@ void pp_assign (uint indent, assign_t* assign) {
 void pp_stmt (uint indent, stmt_t* stmt) {
     if (stmt) {
         pp_indent(indent);
-        printf("<%d> ", stmt->id);
+        printf("%s<%d> %s", BLACK, stmt->id, RESET);
         switch (stmt->type) {
             case S_IF:
-                printf("CHOICE {\n");
+                printf("%sCHOICE %s{\n", CYAN, RESET);
                 pp_branch(indent+1, stmt->val.branch);
                 pp_indent(indent);
                 printf("}\n");
                 break;
             case S_DO:
-                printf("LOOP {\n");
+                printf("%sLOOP %s{\n", CYAN, RESET);
                 pp_branch(indent+1, stmt->val.branch);
                 pp_indent(indent);
                 printf("}\n");
@@ -107,10 +116,10 @@ void pp_stmt (uint indent, stmt_t* stmt) {
                 pp_assign(indent, stmt->val.assign);
                 break;
             case S_BREAK:
-                printf("BREAK\n");
+                printf("%sBREAK%s\n", CYAN, RESET);
                 break;
             case S_SKIP:
-                printf("SKIP\n");
+                printf("%sSKIP%s\n", CYAN, RESET);
                 break;
             default:
                 UNREACHABLE();
@@ -122,7 +131,7 @@ void pp_stmt (uint indent, stmt_t* stmt) {
 void pp_proc (proc_t* proc) {
     if (proc) {
         putchar('\n');
-        printf("PROC {%s} {\n", proc->name);
+        printf("%sPROC {%s} %s{\n", PURPLE, proc->name, RESET);
         pp_var(1, proc->vars);
         pp_stmt(1, proc->stmts);
         printf("}\n");
@@ -132,7 +141,7 @@ void pp_proc (proc_t* proc) {
 
 void pp_check (check_t* check) {
     if (check) {
-        printf("REACH? ");
+        printf("%sREACH? ", PURPLE);
         pp_expr(check->cond);
         printf("\n");
         pp_check(check->next);
