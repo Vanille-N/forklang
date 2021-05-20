@@ -10,7 +10,9 @@ ull hash (compute_t* item) {
         h = ((h + item->env[i]) * MUL + ADD) % MOD;
     }
     for (uint i = 0; i < item->prog->nbproc; i++) {
-        h = ((h + item->state[i]->id) * MUL + ADD) % MOD;
+        if (item->state[i]) {
+            h = ((h + item->state[i]->id) * MUL + ADD) % MOD;
+        }
     }
     return h;
 }
@@ -90,10 +92,11 @@ void enqueue (worklist_t* todo, compute_t* item) {
 
 compute_t* dequeue (worklist_t* todo) {
     record_t* tmp = todo->head;
-    compute_t* res = tmp->data;
     if (tmp) {
+        compute_t* res = tmp->data;
         todo->head = tmp->next;
         free(tmp);
+        return res;
     }
-    return res;
+    return NULL;
 }

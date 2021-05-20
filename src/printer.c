@@ -133,7 +133,7 @@ void pp_proc (proc_t* proc) {
     if (proc) {
         pp_indent(0);
         printf("%sPROC {%s} %s{\n", PURPLE, proc->name, RESET);
-        pp_var(1, proc->vars);
+        pp_var(1, proc->locs);
         pp_stmt(1, proc->stmts);
         pp_indent(0);
         printf("}\n");
@@ -153,7 +153,7 @@ void pp_check (check_t* check) {
 
 void pp_prog (prog_t* prog) {
     printf("-- %d variables | %d statements --\n", prog->nbvar, prog->nbstmt);
-    pp_var(0, prog->vars);
+    pp_var(0, prog->globs);
     pp_proc(prog->procs);
     pp_check(prog->checks);
 }
@@ -167,8 +167,8 @@ bool* explored_steps;
 void pp_rprog (rprog_t* prog) {
     explored_steps = malloc(prog->nbstep * sizeof(bool));
     for (uint i = 0; i < prog->nbstep; i++) { explored_steps[i] = false; }
-    for (uint i = 0; i < prog->nbvar; i++) {
-        pp_rvar(0, prog->vars+i);
+    for (uint i = 0; i < prog->nbglob; i++) {
+        pp_rvar(0, prog->globs+i);
         printf("\n");
     }
     for (uint i = 0; i < prog->nbproc; i++) {
@@ -227,9 +227,9 @@ void pp_rexpr (rexpr_t* expr) {
 void pp_rproc (rproc_t* proc) {
     pp_indent(0);
     printf("%sthread '%s' %sentrypoint [%d]%s", PURPLE, proc->name, RED, proc->entrypoint->id, RESET);
-    for (uint i = 0; i < proc->nbvar; i++) {
+    for (uint i = 0; i < proc->nbloc; i++) {
         printf("\n");
-        pp_rvar(1, proc->vars+i);
+        pp_rvar(1, proc->locs+i);
     }
     pp_rstep(1, proc->entrypoint);
     printf("\n");

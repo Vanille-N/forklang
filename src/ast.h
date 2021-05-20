@@ -68,7 +68,7 @@ typedef struct expr {
 // a procedure
 typedef struct proc {
     char* name;
-    var_t* vars;
+    var_t* locs;
     stmt_t* stmts;
     struct proc* next;
 } proc_t;
@@ -81,10 +81,11 @@ typedef struct check {
 
 // a program
 typedef struct {
-    var_t* vars;
+    var_t* globs;
     proc_t* procs;
     check_t* checks;
     uint nbvar;
+    uint nbglob;
     uint nbstmt;
 } prog_t;
 

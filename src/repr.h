@@ -73,8 +73,8 @@ typedef struct rguard {
 // a procedure
 typedef struct {
     char* name;
-    uint nbvar;
-    var_t* vars;
+    uint nbloc;
+    var_t* locs;
     rstep_t* entrypoint;
 } rproc_t;
 
@@ -85,8 +85,9 @@ typedef struct {
 
 // a full program
 typedef struct {
+    uint nbglob;
     uint nbvar;
-    var_t* vars;
+    var_t* globs;
     uint nbproc;
     rproc_t* procs;
     uint nbcheck;
@@ -94,7 +95,7 @@ typedef struct {
     uint nbstep;
 } rprog_t;
 
-rprog_t* tr_prog (prog_t* in);
+rprog_t* tr_prog (prog_t* in, uint nbvar);
 void tr_var_list (uint* nb, var_t** loc, var_t* in);
 void tr_check_list (uint* nb, rcheck_t** loc, check_t* in);
 rexpr_t* tr_expr (expr_t* in);

@@ -12,7 +12,7 @@ var_t* make_ident (char* s, uint id) {
 
 prog_t* make_prog (var_t* v, proc_t* p, check_t* c) {
     prog_t* prog = malloc(sizeof(prog_t));
-    prog->vars = v;
+    prog->globs = v;
     prog->procs = p;
     prog->checks = c;
     return prog;
@@ -60,10 +60,10 @@ stmt_t* make_stmt (stmt_e type, stmt_u val, uint id) {
     return stmt;
 }
 
-proc_t* make_proc (char* name, var_t* vars, stmt_t* stmts) {
+proc_t* make_proc (char* name, var_t* locs, stmt_t* stmts) {
     proc_t* proc = malloc(sizeof(proc_t));
     proc->name = name;
-    proc->vars = vars;
+    proc->locs = locs;
     proc->stmts = stmts;
     proc->next = NULL;
     return proc;

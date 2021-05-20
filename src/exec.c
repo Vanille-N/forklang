@@ -193,7 +193,7 @@ sat_t exec_prog_all (rprog_t* prog) {
     free(comp->state);
     free(comp);
     while ((comp = dequeue(todo))) {
-        pp_env(prog->nbvar, comp->env, prog->vars);
+        pp_env(prog->nbglob, comp->env, prog->globs);
         for (uint k = 0; k < prog->nbcheck; k++) {
             if (!comp->sat[k] && 0 != eval_expr(prog->checks[k].cond, comp->env)) {
                 comp->sat[k] = true;
@@ -201,7 +201,11 @@ sat_t exec_prog_all (rprog_t* prog) {
             }
         }
         for (uint k = 0; k < prog->nbproc; k++) {
-            exec_step_all_proc(seen, todo, k, comp);
+            compute_t* tmp = dup_compute(comp);
+            exec_step_all_proc(seen, todo, k, tmp);
+            free(tmp->env);
+            free(tmp->state);
+            free(tmp);
         }
         free(comp->env);
         free(comp->state);

@@ -32,7 +32,7 @@ typedef struct {
 } worklist_t;
 
 worklist_t* create_worklist ();
-void enqueue (worklist_t* todo, compute_t* item);
 compute_t* dequeue (worklist_t* todo);
+void enqueue (worklist_t* todo, compute_t* item);
 
 #endif // HASHSET_H

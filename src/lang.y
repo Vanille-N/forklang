@@ -185,7 +185,7 @@ int main (int argc, char **argv) {
             printf("\n=== PARSED AST ===\n\n");
             pp_prog(program);
         }
-        rprog_t* repr = tr_prog(program);
+        rprog_t* repr = tr_prog(program, unique_var_id);
         if (show_repr) {
             printf("\n=== INTERNAL REPRESENTATION ===\n\n");
             pp_rprog(repr);

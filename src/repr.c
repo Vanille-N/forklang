@@ -10,12 +10,13 @@ uint nbloc;
 var_t* globs;
 var_t* locs;
 
-rprog_t* tr_prog (prog_t* in) {
+rprog_t* tr_prog (prog_t* in, uint nbvar) {
     rprog_t* out = malloc(sizeof(rprog_t));
-    out->nbvar = 0;
-    tr_var_list(&out->nbvar, &out->vars, in->vars);
-    nbglob = out->nbvar;
-    globs = out->vars;
+    out->nbglob = 0;
+    tr_var_list(&out->nbglob, &out->globs, in->globs);
+    nbglob = out->nbglob;
+    globs = out->globs;
+    out->nbvar = nbvar;
     out->nbproc = 0;
     tr_proc_list(&out->nbproc, &out->procs, in->procs);
     out->nbcheck = 0;
@@ -101,10 +102,10 @@ void tr_proc_list (uint* nb, rproc_t** loc, proc_t* in) {
         tr_proc_list(nb, loc, in->next);
         rproc_t* curr = &(*loc)[n];
         curr->name = in->name;
-        curr->nbvar = 0;
-        tr_var_list(&(curr->nbvar), &(curr->vars), in->vars);
-        nbloc = curr->nbvar;
-        locs = curr->vars;
+        curr->nbloc = 0;
+        tr_var_list(&(curr->nbloc), &(curr->locs), in->locs);
+        nbloc = curr->nbloc;
+        locs = curr->locs;
         tr_stmt(
             &curr->entrypoint, in->stmts,
             true, NULL, NULL);
