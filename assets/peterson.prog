@@ -5,7 +5,7 @@
 // une zone critique; chacun est capable d'y entrer (infiniment souvent)
 // mais pas les deux en même temps.
 
-var f0,f1,v,c;
+var f0,f1,v,c,ga;
 
 proc p0
     do
@@ -18,7 +18,9 @@ proc p0
 
 	c := c+1;
 	// zone critique
-	c := c-1
+	c := c-1;
+
+	f0 := 0
     od
 end
 
@@ -33,7 +35,9 @@ proc p1
 
 	c := c+2;
 	// zone critique
-	c := c-2
+	c := c-2;
+
+	f1 := 0
     od
 end
 

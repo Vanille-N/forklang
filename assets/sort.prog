@@ -35,6 +35,7 @@ proc p
         fin := 1
 end
 
+reach fin		// accessible
 reach fin && x > y      // non accessible
 reach fin && y > z      // non accessible
 reach fin && x > z      // non accessible

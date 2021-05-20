@@ -14,7 +14,7 @@ var lock,fin;
 proc p
 	var todo;
 
-	lock := 1;	// lock non acquis
+	lock := 2;	// lock non acquis
 	todo := 1;
 
 	do
@@ -39,9 +39,8 @@ proc p
 	fin := 1
 end
 
-reach lock == 0		// deux relâchements de suite, non accessible
-reach lock == 1		// accessible
-reach lock == 2		// accessible
-reach lock == 3		// deux obtentions de suite, non accessible
-reach fin && !(lock == 1)	// lock non relâché à la fin, non accessible
-
+reach lock == 1		// non accessible (deux relâchements de suite)
+reach lock == 2		// accessible (lock relâché)
+reach lock == 3		// accessible (lock obtenu)
+reach lock == 4		// non accessible (deux obtentions de suite)
+reach fin && !(lock == 2)	// non_accessible (lock non relâché à la fin)

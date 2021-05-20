@@ -14,14 +14,14 @@ typedef unsigned uint;
     exit(1); \
 }
 
-
 // A different representation, more suited for execution
+// Not a tree but an execution graph
 
 struct rexpr;
 struct rstep;
 struct rguard;
 
-// an binary operation
+// a binary operation
 typedef struct {
     struct rexpr* lhs;
     struct rexpr* rhs;

@@ -237,32 +237,37 @@ void tr_stmt (
 }
 
 // Returns the possible else clause so that
-// the caller can set it as the unguarded branch
+// the caller can set it as its unguarded branch
 rstep_t* tr_branch_list (
     uint* nb, rguard_t** loc, branch_t* in,
     bool advance, rstep_t* skipto, rstep_t* breakto
 ) {
-    if (in) {
-        if (in->cond) {
-            uint n = (*nb)++;
-            rstep_t* end = tr_branch_list(
-                nb, loc, in->next,
-                advance, skipto, breakto);
-            (*loc)[n].cond = tr_expr(in->cond);
-            tr_stmt(
-                &((*loc)[n].next), in->stmt,
-                advance, skipto, breakto);
-            return end;
-        } else {
-            *loc = malloc(*nb * sizeof(rguard_t));
-            rstep_t* end = malloc(sizeof(rstep_t));
-            tr_stmt(
-                &end, in->stmt,
-                advance, skipto, breakto);
-            return end;
-        }
+    {
+        uint len = 0;
+        branch_t* cur = in;
+        while (cur && cur->cond) { len++; cur = cur->next; }
+        *loc = malloc(len * sizeof(rguard_t));
+        *nb = len;
+    }
+    uint n = 0;
+    branch_t* cur = in;
+    while (cur && cur->cond) {
+        rguard_t* out = *loc + n;
+        out->cond = tr_expr(cur->cond);
+        tr_stmt(
+            &out->next, cur->stmt,
+            advance, skipto, breakto);
+        n++;
+        cur = cur->next;
+    }
+    // else clause
+    if (cur) {
+        rstep_t* end = malloc(sizeof(rstep_t));
+        tr_stmt(
+            &end, cur->stmt,
+            advance, skipto, breakto);
+        return end;
     } else {
-        *loc = malloc(*nb * sizeof(rguard_t));
         return NULL;
     }
 }
