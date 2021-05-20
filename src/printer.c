@@ -12,7 +12,8 @@ const char* RESET = "\e[0m";
 void pp_stmt (uint, stmt_t*);
 
 void pp_indent (uint num) {
-    for (uint i = 0; i < num; i++) {
+    printf("%s|%s", BLUE, RESET);
+    for (uint i = 0; i <= num; i++) {
         printf("  ");
     }
 }
@@ -130,10 +131,11 @@ void pp_stmt (uint indent, stmt_t* stmt) {
 
 void pp_proc (proc_t* proc) {
     if (proc) {
-        putchar('\n');
+        pp_indent(0);
         printf("%sPROC {%s} %s{\n", PURPLE, proc->name, RESET);
         pp_var(1, proc->vars);
         pp_stmt(1, proc->stmts);
+        pp_indent(0);
         printf("}\n");
         pp_proc(proc->next); 
     }
@@ -141,6 +143,7 @@ void pp_proc (proc_t* proc) {
 
 void pp_check (check_t* check) {
     if (check) {
+        pp_indent(0);
         printf("%sREACH? ", PURPLE);
         pp_expr(check->cond);
         printf("\n");
@@ -179,19 +182,20 @@ void pp_rprog (rprog_t* prog) {
 
 void pp_rvar (uint indent, var_t* var) {
     pp_indent(indent);
-    printf("ref [%d] as '%s'", var->id, var->name);
+    printf("%sref %s{%d as '%s'}%s", PURPLE, CYAN, var->id, var->name, RESET);
 }
 
 void pp_rcheck (rcheck_t* check) {
-    printf("reach? ");
+    pp_indent(0);
+    printf("%sreach? %s", PURPLE, GREEN);
     pp_rexpr(check->cond);
-    printf("\n");
+    printf("%s\n", RESET);
 }
 
 void pp_rexpr (rexpr_t* expr) {
     switch (expr->type) {
         case E_VAR:
-            printf("{%d as '%s'}", expr->val.var->id, expr->val.var->name);
+            printf("%s{%d as '%s'}%s", CYAN, expr->val.var->id, expr->val.var->name, GREEN);
             break;
         case E_VAL:
             printf("(%d)", expr->val.digit);
@@ -221,32 +225,35 @@ void pp_rexpr (rexpr_t* expr) {
 }
 
 void pp_rproc (rproc_t* proc) {
-     printf("thread '%s' entrypoint [%d]", proc->name, proc->entrypoint->id);
-     for (uint i = 0; i < proc->nbvar; i++) {
-         printf("\n");
-         pp_rvar(1, proc->vars+i);
-     }
-     pp_rstep(1, proc->entrypoint);
-     printf("\nend\n");
+    pp_indent(0);
+    printf("%sthread '%s' %sentrypoint [%d]%s", PURPLE, proc->name, RED, proc->entrypoint->id, RESET);
+    for (uint i = 0; i < proc->nbvar; i++) {
+        printf("\n");
+        pp_rvar(1, proc->vars+i);
+    }
+    pp_rstep(1, proc->entrypoint);
+    printf("\n");
+    pp_indent(0);
+    printf("%send%s\n", PURPLE, RESET);
 }
 
 void pp_rstep (uint indent, rstep_t* step) {
     if (explored_steps[step->id]) {
         printf("\n");
         pp_indent(indent);
-        printf("<%d> (merge)", step->id);
+        printf("%s<%d> %s(merge)%s", YELLOW, step->id, BLACK, RESET);
         return;
     }
     explored_steps[step->id] = true;
     if (step->assign) {
         printf("\n");
         pp_indent(indent);
-        printf("<%d> ", step->id);
+        printf("%s<%d> %s", YELLOW, step->id, RESET);
         pp_rassign(step->assign);
         if (step->unguarded) {
-            printf(" then [%d]", step->unguarded->id);
+            printf(" %sthen [%d]%s", RED, step->unguarded->id, RESET);
         } else {
-            printf(" <END>");
+            printf(" %s<END>%s", BLACK, RESET);
         }
         if (step->advance) {
             if (step->unguarded) {
@@ -254,62 +261,68 @@ void pp_rstep (uint indent, rstep_t* step) {
             } else {
                 printf("\n");
                 pp_indent(indent);
-                printf("<END>");
+                printf("%s<END>%s", BLACK, RESET);
             }
         } else {
-            printf(" (loop)");
+            printf(" %s(loop)%s", BLACK, RESET);
         }
     } else if (step->nbguarded > 0) {
         printf("\n");
         pp_indent(indent);
-        printf("<%d> %d guarded", step->id, step->nbguarded);
+        printf("%s<%d> %s%d guarded", YELLOW, step->id, BLACK, step->nbguarded);
         if (step->unguarded) { printf(", default"); }
+        printf("%s", RESET);
         for (int i = 0; i < step->nbguarded; i++) {
             pp_rguard(indent+1, step->guarded+i);
             if (step->advance) {
                 pp_rstep(indent+2, step->guarded[i].next);
             } else {
-                printf(" (loop)");
+                printf(" %s(loop)%s", BLACK, RESET);
             }
         }
         if (step->unguarded) {
             printf("\n");
             pp_indent(indent+1);
-            printf("else jump [%d]", step->unguarded->id);
+            printf("%selse %sjump [%d]%s", PURPLE, RED, step->unguarded->id, RESET);
             pp_rstep(indent+2, step->unguarded);
         }
         printf("\n");
         pp_indent(indent);
-        printf("</>");
+        printf("%s</>%s", BLACK, RESET);
     } else {
         if (step->unguarded) {
-            printf("<%d> skip [%d]", step->id, step->unguarded->id);
+            printf("\n");
+            pp_indent(indent);
+            printf("%s<%d> %sskip [%d]%s", YELLOW, step->id, RED, step->unguarded->id, RESET);
         } else {
-            printf("<%d> <END>", step->id);
+            printf("\n");
+            pp_indent(indent);
+            printf("%s<%d> %s<END>%s", YELLOW, step->id, BLACK, RESET);
             return;
         }
         if (step->advance) {
             if (step->unguarded) {
                 pp_rstep(indent, step->unguarded);
             } else {
-                printf(" <END>");
+                printf(" %s<END>%s", BLACK, RESET);
             }
         } else {
-            printf(" (loop)");
+            printf(" %s(loop)%s", BLACK, RESET);
         }
     }
 }
 
 void pp_rassign (rassign_t* assign) {
-    printf("{%d as '%s'} <- ", assign->target->id, assign->target->name);
+    printf("%s{%d as '%s'}%s <- %s", CYAN, assign->target->id, assign->target->name, RESET, GREEN);
     pp_rexpr(assign->expr);
+    printf("%s", RESET);
 }
 
 void pp_rguard (uint indent, rguard_t* guard) {
     printf("\n");
     pp_indent(indent);
-    printf("when ");
+    printf("%swhen %s", PURPLE, GREEN);
     pp_rexpr(guard->cond);
-    printf(" jump [%d]", guard->next->id);
+    printf(" %sjump [%d]%s", RED, guard->next->id, RESET);
 }
 
