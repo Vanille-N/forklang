@@ -7,18 +7,19 @@
 
 typedef unsigned uint;
 
+#define UNREACHABLE() { \
+    fflush(stdout); \
+    fprintf(stderr, "\n\nFatal: Entered unreachable code in file %s at %s:%d", \
+        __FILE__, __func__, __LINE__); \
+    exit(1); \
+}
+
+
 // A different representation, more suited for execution
 
 struct rexpr;
 struct rstep;
 struct rguard;
-
-// a variable with its value
-typedef struct {
-    char* name;
-    int value;
-    uint id;
-} rvar_t;
 
 // an binary operation
 typedef struct {
@@ -28,7 +29,7 @@ typedef struct {
 
 // an expression
 typedef union {
-    rvar_t* var;
+    var_t* var;
     unsigned digit;
     rbinop_t* binop;
     struct rexpr* subexpr;
@@ -40,13 +41,13 @@ typedef struct rexpr {
 
 // an assignment operation
 typedef struct {
-    rvar_t* target;
+    var_t* target;
     rexpr_t* expr;
 } rassign_t;
 
 // represents a choice (possibly only one solution)
 typedef struct rstep {
-    bool advance; // avoid looping
+    bool advance; // avoid looping during pretty-print
     rassign_t* assign; // maybe assign a new value
     unsigned nbguarded;
     struct rguard* guarded; // choose any if satisfied
@@ -73,7 +74,7 @@ typedef struct rguard {
 typedef struct {
     char* name;
     uint nbvar;
-    rvar_t* vars;
+    var_t* vars;
     rstep_t* entrypoint;
 } rproc_t;
 
@@ -85,7 +86,7 @@ typedef struct {
 // a full program
 typedef struct {
     uint nbvar;
-    rvar_t* vars;
+    var_t* vars;
     uint nbproc;
     rproc_t* procs;
     uint nbcheck;
@@ -94,10 +95,10 @@ typedef struct {
 } rprog_t;
 
 rprog_t* tr_prog (prog_t* in);
-void tr_var_list (uint* nb, rvar_t** loc, var_t* in);
+void tr_var_list (uint* nb, var_t** loc, var_t* in);
 void tr_check_list (uint* nb, rcheck_t** loc, check_t* in);
 rexpr_t* tr_expr (expr_t* in);
-rvar_t* locate_var (char* ident, uint nb, rvar_t* locs);
+var_t* locate_var (char* ident, uint nb, var_t* locs);
 void tr_proc_list (uint* nb, rproc_t** loc, proc_t* in);
 
 void tr_stmt (

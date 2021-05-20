@@ -2,20 +2,13 @@
 
 #include "printer.h"
 
-#define UNREACHABLE() { \
-    fflush(stdout); \
-    fprintf(stderr, "\n\nFatal: Entered unreachable code in file %s at %s:%d", \
-        __FILE__, __func__, __LINE__); \
-    exit(1); \
-}
-
 // Translate from ast to repr
 
 // variables
 uint nbglob;
 uint nbloc;
-rvar_t* globs;
-rvar_t* locs;
+var_t* globs;
+var_t* locs;
 
 rprog_t* tr_prog (prog_t* in) {
     rprog_t* out = malloc(sizeof(rprog_t));
@@ -31,15 +24,14 @@ rprog_t* tr_prog (prog_t* in) {
     return out;
 }
 
-void tr_var_list (uint* nb, rvar_t** loc, var_t* in) {
+void tr_var_list (uint* nb, var_t** loc, var_t* in) {
     if (in) {
         uint n = (*nb)++;
         tr_var_list(nb, loc, in->next);
         (*loc)[n].name = in->name;
-        (*loc)[n].value = 0;
         (*loc)[n].id = in->id;
     } else {
-        *loc = malloc(*nb * sizeof(rvar_t));
+        *loc = malloc(*nb * sizeof(var_t));
     }
 }
 
@@ -60,7 +52,7 @@ rexpr_t* tr_expr (expr_t* in) {
     out->type = in->type;
     switch (in->type) {
         case E_VAR:
-            rvar_t* find;
+            var_t* find;
             if (find = locate_var(in->val.ident, nbloc, locs)) {
                 out->val.var = find;
             } else if (find = locate_var(in->val.ident, nbglob, globs)) {
@@ -93,7 +85,7 @@ rexpr_t* tr_expr (expr_t* in) {
     return out;
 }
 
-rvar_t* locate_var (char* ident, uint nb, rvar_t* locs) {
+var_t* locate_var (char* ident, uint nb, var_t* locs) {
     for (uint i = 0; i < nb; i++) {
         if (0 == strcmp(ident, locs[i].name)) {
             return locs+i;
@@ -130,7 +122,7 @@ void tr_stmt (
     switch (in->type) {
         case S_ASSIGN:
             (*out)->assign = malloc(sizeof(rassign_t));
-            rvar_t* find;
+            var_t* find;
             if (find = locate_var(in->val.assign->target, nbloc, locs)) {
                 (*out)->assign->target = find;
             } else if (find = locate_var(in->val.assign->target, nbglob, globs)) {

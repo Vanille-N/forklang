@@ -58,7 +58,7 @@ typedef union {
     char* ident;
     struct expr* subexpr;
     binop_t* binop;
-    unsigned digit;
+    uint digit;
 } expr_u;
 typedef struct expr {
     expr_e type;

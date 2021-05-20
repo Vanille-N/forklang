@@ -7,6 +7,7 @@
 
 #include "ast.h"
 #include "printer.h"
+#include "exec.h"
 
 extern int yylineno;
 
@@ -160,11 +161,14 @@ int main (int argc, char **argv) {
     }
     bool show_ast = false;
     bool show_repr = false;
+    bool execute = false;
     for (int i = 2; i < argc; i++) {
         if (0 == strcmp("--ast", argv[i])) {
             show_ast = true;
         } else if (0 == strcmp("--repr", argv[i])) {
             show_repr = true;
+        } else if (0 == strcmp("--exec", argv[i])) {
+            execute = true;
         } else {
             fprintf(stderr, "No such option '%s'", argv[i]);
             exit(2);
@@ -182,6 +186,9 @@ int main (int argc, char **argv) {
         if (show_repr) {
             printf("\n=== INTERNAL REPRESENTATION ===\n\n");
             pp_rprog(repr);
+        }
+        if (execute) {
+            exec_prog(repr);
         }
     }
 }

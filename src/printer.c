@@ -157,6 +157,7 @@ void pp_rprog (rprog_t* prog) {
     for (uint i = 0; i < prog->nbstep; i++) { explored_steps[i] = false; }
     for (uint i = 0; i < prog->nbvar; i++) {
         pp_rvar(0, prog->vars+i);
+        printf("\n");
     }
     for (uint i = 0; i < prog->nbproc; i++) {
         pp_rproc(prog->procs+i);
@@ -167,9 +168,9 @@ void pp_rprog (rprog_t* prog) {
     free(explored_steps);
 }
 
-void pp_rvar (uint indent, rvar_t* var) {
+void pp_rvar (uint indent, var_t* var) {
     pp_indent(indent);
-    printf("ref [%d] as '%s'\n", var->id, var->name);
+    printf("ref [%d] as '%s'", var->id, var->name);
 }
 
 void pp_rcheck (rcheck_t* check) {
@@ -211,23 +212,26 @@ void pp_rexpr (rexpr_t* expr) {
 }
 
 void pp_rproc (rproc_t* proc) {
-     printf("thread '%s' entrypoint [%d]\n", proc->name, proc->entrypoint->id);
+     printf("thread '%s' entrypoint [%d]", proc->name, proc->entrypoint->id);
      for (uint i = 0; i < proc->nbvar; i++) {
+         printf("\n");
          pp_rvar(1, proc->vars+i);
      }
      pp_rstep(1, proc->entrypoint);
-     printf("end\n");
+     printf("\nend\n");
 }
 
 void pp_rstep (uint indent, rstep_t* step) {
     if (explored_steps[step->id]) {
+        printf("\n");
         pp_indent(indent);
-        printf("<%d> (merge)\n", step->id);
+        printf("<%d> (merge)", step->id);
         return;
     }
     explored_steps[step->id] = true;
-    pp_indent(indent);
     if (step->assign) {
+        printf("\n");
+        pp_indent(indent);
         printf("<%d> ", step->id);
         pp_rassign(step->assign);
         if (step->unguarded) {
@@ -236,45 +240,46 @@ void pp_rstep (uint indent, rstep_t* step) {
             printf(" <END>");
         }
         if (step->advance) {
-            printf("\n");
             if (step->unguarded) {
                 pp_rstep(indent, step->unguarded);
             } else {
+                printf("\n");
                 pp_indent(indent);
-                printf("<END>\n");
+                printf("<END>");
             }
         } else {
-            printf(" (loop)\n");
+            printf(" (loop)");
         }
     } else if (step->nbguarded > 0) {
+        printf("\n");
+        pp_indent(indent);
         printf("<%d> %d guarded", step->id, step->nbguarded);
         if (step->unguarded) { printf(", default"); }
-        printf("\n");
         for (int i = 0; i < step->nbguarded; i++) {
             pp_rguard(indent+1, step->guarded+i);
             if (step->advance) {
-                printf("\n");
-                pp_rstep(indent+1, step->guarded[i].next);
+                pp_rstep(indent+2, step->guarded[i].next);
             } else {
-                printf(" (loop)\n");
+                printf(" (loop)");
             }
         }
         if (step->unguarded) {
+            printf("\n");
             pp_indent(indent+1);
-            printf("else jump to [%d]\n", step->unguarded->id);
-            pp_rstep(indent+1, step->unguarded);
+            printf("else jump [%d]", step->unguarded->id);
+            pp_rstep(indent+2, step->unguarded);
         }
+        printf("\n");
         pp_indent(indent);
-        printf("</>\n");
+        printf("</>");
     } else {
         if (step->unguarded) {
-            printf("<%d> skip to [%d]", step->id, step->unguarded->id);
+            printf("<%d> skip [%d]", step->id, step->unguarded->id);
         } else {
-            printf("<%d> <END>\n", step->id);
+            printf("<%d> <END>", step->id);
             return;
         }
         if (step->advance) {
-            printf("\n");
             if (step->unguarded) {
                 pp_rstep(indent, step->unguarded);
             } else {
@@ -292,9 +297,10 @@ void pp_rassign (rassign_t* assign) {
 }
 
 void pp_rguard (uint indent, rguard_t* guard) {
+    printf("\n");
     pp_indent(indent);
     printf("when ");
     pp_rexpr(guard->cond);
-    printf(" jump to [%d]", guard->next->id);
+    printf(" jump [%d]", guard->next->id);
 }
 

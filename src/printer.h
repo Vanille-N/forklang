@@ -9,13 +9,6 @@
 
 typedef unsigned uint;
 
-#define UNREACHABLE() { \
-    fflush(stdout); \
-    fprintf(stderr, "\n\nFatal: Entered unreachable code in file %s at %s:%d", \
-        __FILE__, __func__, __LINE__); \
-    exit(1); \
-}
-
 /***************************************************************************/
 /* pretty-printer                                                          */
 
@@ -36,7 +29,7 @@ void pp_prog (prog_t* prog);
 /* internal representation */
 
 void pp_rprog (rprog_t* prog);
-void pp_rvar (uint indent, rvar_t* var);
+void pp_rvar (uint indent, var_t* var);
 void pp_rcheck (rcheck_t* check);
 void pp_rexpr (rexpr_t* expr);
 void pp_rproc (rproc_t* proc);
