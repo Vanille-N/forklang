@@ -9,8 +9,8 @@
 
 typedef unsigned uint;
 
-/***************************************************************************/
-/* pretty-printer                                                          */
+// Pretty-print parsed ast
+// (i.e. "Niveau 1")
 
 void pp_indent (uint num);
 
@@ -26,7 +26,7 @@ void pp_check (check_t* check);
 void pp_prog (prog_t* prog);
 
 
-/* internal representation */
+// Pretty-print internal representation
 
 void pp_rprog (rprog_t* prog);
 void pp_rvar (uint indent, var_t* var);
@@ -36,7 +36,6 @@ void pp_rproc (rproc_t* proc);
 void pp_rassign (rassign_t* assign);
 void pp_rguard (uint indent, rguard_t* guard);
 void pp_rstep (uint indent, rstep_t* step);
-
 
 
 #endif // PRINTER_H

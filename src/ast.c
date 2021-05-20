@@ -1,6 +1,8 @@
 #include "ast.h"
 
 // Parse-time expression builders
+// make_X : construct X from essential items
+// X_as_Y : put X inside an union to make it a Y
 
 var_t* make_ident (char* s, uint id) {
     var_t* var = malloc(sizeof(var_t));
@@ -10,18 +12,18 @@ var_t* make_ident (char* s, uint id) {
     return var;
 }
 
-prog_t* make_prog (var_t* v, proc_t* p, check_t* c) {
+prog_t* make_prog (var_t* globs, proc_t* procs, check_t* checks) {
     prog_t* prog = malloc(sizeof(prog_t));
-    prog->globs = v;
-    prog->procs = p;
-    prog->checks = c;
+    prog->globs = globs;
+    prog->procs = procs;
+    prog->checks = checks;
     return prog;
 }
 
-assign_t* make_assign (char* s, expr_t* e) {
+assign_t* make_assign (char* target, expr_t* value) {
     assign_t* assign = malloc(sizeof(assign_t));
-    assign->target = s;
-    assign->expr = e;
+    assign->target = target;
+    assign->value = value;
     return assign;
 }
 

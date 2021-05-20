@@ -95,12 +95,12 @@ typedef struct {
     uint nbstep;
 } rprog_t;
 
-rprog_t* tr_prog (prog_t* in, uint nbvar);
-void tr_var_list (uint* nb, var_t** loc, var_t* in);
-void tr_check_list (uint* nb, rcheck_t** loc, check_t* in);
+rprog_t* tr_prog (prog_t* in);
+uint tr_var_list (var_t** loc, var_t* in);
+uint tr_check_list (rcheck_t** loc, check_t* in);
 rexpr_t* tr_expr (expr_t* in);
-var_t* locate_var (char* ident, uint nb, var_t* locs);
-void tr_proc_list (uint* nb, rproc_t** loc, proc_t* in);
+var_t* locate_var (char* ident, uint nb, var_t* vars);
+uint tr_proc_list (rproc_t** loc, proc_t* in);
 
 void tr_stmt (
     rstep_t** out, stmt_t* in,

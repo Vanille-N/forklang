@@ -9,10 +9,11 @@ typedef bool* sat_t;
 typedef int* env_t;
 typedef rstep_t** state_t;
 
+// A state of the computation
 typedef struct {
-    env_t env;
-    state_t state;
-    sat_t sat;
+    env_t env; // assignment for each variable
+    state_t state; // step for each process
+    sat_t sat; // satisfied checks
     rprog_t* prog;
 } compute_t;
 

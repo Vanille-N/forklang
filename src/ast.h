@@ -11,7 +11,7 @@ struct stmt;
 typedef struct var {
     char* name;
     struct var* next;
-    int id;
+    uint id;
 } var_t;
 
 // a nondeterministic choice
@@ -24,7 +24,7 @@ typedef struct branch {
 // an assignment statement
 typedef struct {
     char* target;
-    struct expr* expr;
+    struct expr* value;
 } assign_t;
 
 // a statement
@@ -38,7 +38,7 @@ typedef struct stmt {
     stmt_e type;
     stmt_u val;
     struct stmt* next;
-    int id;
+    uint id;
 } stmt_t;
 
 // a binary operation
@@ -68,7 +68,7 @@ typedef struct expr {
 // a procedure
 typedef struct proc {
     char* name;
-    var_t* locs;
+    var_t* locs; // local variables
     stmt_t* stmts;
     struct proc* next;
 } proc_t;

@@ -16,10 +16,13 @@ state_t init_state (rprog_t* prog) {
     return state;
 }
 
+// duplicate a computation to avoid side effects
 compute_t* dup_compute (compute_t* comp) {
     compute_t* cpy = malloc(sizeof(compute_t));
+    // copy by reference so that sat is updated
     cpy->sat = comp->sat;
     cpy->prog = comp->prog;
+    // copy by value so that values are not changed
     cpy->env = malloc(comp->prog->nbvar * sizeof(int));
     for (uint i = 0; i < comp->prog->nbvar; i++) { cpy->env[i] = comp->env[i]; }
     cpy->state = malloc(comp->prog->nbproc * sizeof(rstep_t));
@@ -35,18 +38,28 @@ sat_t blank_sat (rprog_t* prog) {
     return sat;
 }
 
-void pp_env (uint nbvar, env_t env, var_t* vars) {
-    for (uint i = 0; i < nbvar; i++) {
-        printf("%s=%d ", vars[i].name, env[i]);
+void pp_env (rprog_t* prog, env_t env) {
+    printf("Global ");
+    for (uint i = 0; i < prog->nbglob; i++) {
+        printf("%s=%d ", prog->globs[i].name, env[prog->globs[i].id]);
     }
     printf("\n");
+    for (uint p = 0; p < prog->nbproc; p++) {
+        rproc_t* proc = prog->procs + p;
+        printf("Local %s ", proc->name);
+        for (uint i = 0; i < proc->nbloc; i++) {
+            printf("%s=%d ", proc->locs[i].name, env[proc->locs[i].id]);
+        }
+        printf("\n");
+    }
 }
 
+// straightforward expression evaluation
 int eval_expr (rexpr_t* expr, env_t env) {
     fflush(stdout);
     switch (expr->type) {
         case E_VAR: return env[expr->val.var->id];
-        case E_VAL: return expr->val.digit;
+        case E_VAL: return (int)(expr->val.digit);
         case E_LESS:
         case E_GREATER:
         case E_EQUAL:
@@ -84,6 +97,9 @@ void exec_assign (rassign_t* assign, env_t env) {
     env[assign->target->id] = eval_expr(assign->expr, env);
 }
 
+// Randomly choose a successor of a determined computation step
+// and update the environment
+// Returns the new state
 rstep_t* exec_step_random (rstep_t* step, env_t env) {
     if (!step) return step; // NULL, blocked
     if (step->assign) {
@@ -105,11 +121,12 @@ rstep_t* exec_step_random (rstep_t* step, env_t env) {
             return step; // blocked
         }
     } else {
-        int choice = rand() % nbsat;
+        int choice = rand() % (int)nbsat;
         return step->guarded[satisfied[choice]].next; // satisfied guard
     }
 }
 
+// Randomly execute a program (many times)
 sat_t exec_prog_random (rprog_t* prog) {
     compute_t comp;
     comp.sat = blank_sat(prog);
@@ -118,8 +135,11 @@ sat_t exec_prog_random (rprog_t* prog) {
         comp.env = blank_env(prog); 
         comp.state = init_state(prog);
         for (uint i = 0; i < 100; i++) {
-            uint choose_proc = rand() % prog->nbproc;
+            // choose the process that will advance
+            uint choose_proc = (uint)rand() % prog->nbproc;
+            // calculate next step of the computation
             comp.state[choose_proc] = exec_step_random(comp.state[choose_proc], comp.env);
+            // update reachability
             for (uint k = 0; k < prog->nbcheck; k++) {
                 if (!comp.sat[k] && 0 != eval_expr(prog->checks[k].cond, comp.env)) {
                     comp.sat[k] = true;
@@ -133,6 +153,7 @@ sat_t exec_prog_random (rprog_t* prog) {
     return comp.sat;
 }
 
+// Explore (i.e. add to the worklist with their updated environment) all successors of a state
 void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t* comp) {
     printf("Advance %d\n", pid);
     rstep_t* step = comp->state[pid];
@@ -140,6 +161,7 @@ void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t*
     if (step->assign) {
         exec_assign(step->assign, comp->env);
     }
+    // find all satisfied guards
     uint satisfied [step->nbguarded];
     uint nbsat = 0;
     for (uint i = 0; i < step->nbguarded; i++) {
@@ -151,28 +173,25 @@ void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t*
         // unconditional advancement
         // record if not already seen
         comp->state[pid] = step->unguarded;
-        if (!query(seen, comp)) {
-            insert(seen, comp);
+        if (try_insert(seen, comp)) {
             enqueue(todo, comp);
         }
     } else if (nbsat == 0) {
         if (step->unguarded) {
             // else clause
             comp->state[pid] = step->unguarded;
-            if (!query(seen, comp)) {
-                insert(seen, comp);
+            if (try_insert(seen, comp)) {
                 enqueue(todo, comp);
             }
         } else {
             // blocked
-            // state is obviously recorded
+            // state is obviously already recorded
         }
     } else {
         for (uint i = 0; i < nbsat; i++) {
             // satisfied guards
             comp->state[pid] = step->guarded[satisfied[i]].next;
-            if (!query(seen, comp)) {
-                insert(seen, comp);
+            if (try_insert(seen, comp)) {
                 enqueue(todo, comp);
             }
         }
@@ -190,7 +209,7 @@ sat_t exec_prog_all (rprog_t* prog) {
     // explored records
     hashset_t* seen = create_hashset(1000);
     worklist_t* todo = create_worklist();
-    insert(seen, comp);
+    insert(seen, comp, hash(comp));
     enqueue(todo, comp);
     free(comp->env);
     free(comp->state);
@@ -200,7 +219,7 @@ sat_t exec_prog_all (rprog_t* prog) {
         printf("<<%d>>\n", DBG++);
         fflush(stdout);
         // loop as long as some configurations are unexplored
-        pp_env(prog->nbglob, comp->env, prog->globs);
+        pp_env(prog, comp->env);
         for (uint k = 0; k < prog->nbcheck; k++) {
             if (!comp->sat[k] && 0 != eval_expr(prog->checks[k].cond, comp->env)) {
                 comp->sat[k] = true;

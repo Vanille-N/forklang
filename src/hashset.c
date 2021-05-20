@@ -4,10 +4,12 @@ const ull MOD = 412578559962553;
 const ull MUL = 7563254987;
 const ull ADD = 486651;
 
+// Hashes on more that the capacity for fewer
+// structural comparisons
 ull hash (compute_t* item) {
     ull h = 0;
     for (uint i = 0; i < item->prog->nbvar; i++) {
-        h = ((h + item->env[i]) * MUL + ADD) % MOD;
+        h = ((h + (ull)item->env[i]) * MUL + ADD) % MOD;
     }
     for (uint i = 0; i < item->prog->nbproc; i++) {
         if (item->state[i]) {
@@ -17,6 +19,7 @@ ull hash (compute_t* item) {
     return h;
 }
 
+// In the rare event that two computations have the same hash
 bool equals (compute_t* lhs, compute_t* rhs) {
     for (uint i = 0; i < lhs->prog->nbvar; i++) {
         if (lhs->env[i] != rhs->env[i]) return false;
@@ -27,6 +30,7 @@ bool equals (compute_t* lhs, compute_t* rhs) {
     return true;
 }
 
+// Allocate set buffer and fill with NULL
 hashset_t* create_hashset (uint size) {
     hashset_t* set = malloc(sizeof(hashset_t));
     set->size = size;
@@ -51,22 +55,22 @@ void free_hashset (hashset_t* set) {
     free(set);
 }
 
-void insert (hashset_t* set, compute_t* item) {
-    ull h = hash(item);
-    uint idx = (uint)(h % set->size);
+// Insert regardless of presence
+void insert (hashset_t* set, compute_t* item, ull hashed) {
+    uint idx = (uint)(hashed % set->size);
     record_t* rec = malloc(sizeof(record_t));
     rec->data = dup_compute(item);
-    rec->hash = h;
+    rec->hash = hashed;
     rec->next = set->records[idx];
     set->records[idx] = rec;
 }
 
-bool query (hashset_t* set, compute_t* item) {
-    ull h = hash(item);
-    uint idx = (uint)(h % set->size);
+// Check for presence in set
+bool query (hashset_t* set, compute_t* item, ull hashed) {
+    uint idx = (uint)(hashed % set->size);
     record_t* rec = set->records[idx];
     while (rec) {
-        if (rec->hash == h) {
+        if (rec->hash == hashed) {
             if (equals(rec->data, item)) {
                 return true;
             }
@@ -74,6 +78,17 @@ bool query (hashset_t* set, compute_t* item) {
         rec = rec->next;
     }
     return false;
+}
+
+// Insert and return true iff absent
+bool try_insert (hashset_t* set, compute_t* item) {
+    ull hashed = hash(item);
+    if (!query(set, item, hashed)) {
+        insert(set, item, hashed);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 worklist_t* create_worklist () {

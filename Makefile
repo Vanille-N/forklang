@@ -1,5 +1,5 @@
 BIN = lang
-CFLAGS = -g -Wall -Wextra -Wpedantic
+CFLAGS = -g -Wall -Wextra -Wpedantic -Wconversion -Wshadow
 
 all: $(BIN)
 

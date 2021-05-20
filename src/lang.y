@@ -18,12 +18,12 @@ void yyerror (const char *s) {
 	fprintf(stderr, "%s\nat line %d:%d", s, yylineno);
 }
 
-/**********************************/
+/***************************************************************************/
 /* All output data available here */
 
 prog_t* program;
 
-/* Help variable */
+// Helper variables to assign unique identifiers to variables and statements
 uint unique_var_id;
 uint unique_stmt_id;
 
@@ -35,7 +35,7 @@ uint unique_stmt_id;
 %define parse.error verbose
 %define parse.trace
 
-/* types used by terminals and non-terminals */
+// Types used by terminals and non-terminals
 
 %union {
 	char* ident;
@@ -62,23 +62,25 @@ uint unique_stmt_id;
 %token <ident> IDENT
 %token <digit> INT
 
+// Bind with low priority to separate statements
 %left SEQ
 %left COMMA
 
 %left OR
 %left AND
-%right NOT
 
 %left LESS GREATER EQUAL
 
 %left ADD
 %left SUB
 
+%right NOT
+
 %%
 
 prog : glob_decls procs checks {
         program = make_prog($1, $2, $3);
-        program->nbvar = unique_var_id;
+        program->nbglob = unique_var_id;
         program->nbstmt = unique_stmt_id;
      }
      ;
@@ -185,7 +187,7 @@ int main (int argc, char **argv) {
             printf("\n=== PARSED AST ===\n\n");
             pp_prog(program);
         }
-        rprog_t* repr = tr_prog(program, unique_var_id);
+        rprog_t* repr = tr_prog(program);
         if (show_repr) {
             printf("\n=== INTERNAL REPRESENTATION ===\n\n");
             pp_rprog(repr);

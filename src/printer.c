@@ -1,5 +1,8 @@
 #include "printer.h"
 
+#define PP_COLOR
+
+#ifdef PP_COLOR
 const char* RED = "\x1b[1;31m";
 const char* GREEN = "\x1b[0;32m";
 const char* BLUE = "\x1b[1;34m";
@@ -8,6 +11,16 @@ const char* CYAN = "\x1b[1;36m";
 const char* YELLOW = "\x1b[1;33m";
 const char* BLACK = "\x1b[0;90m";
 const char* RESET = "\x1b[0m";
+#else
+const char* RED = "";
+const char* GREEN = "";
+const char* BLUE = "";
+const char* PURPLE = "";
+const char* CYAN = "";
+const char* YELLOW = "";
+const char* BLACK = "";
+const char* RESET = "";
+#endif // PP_COLOR
 
 void pp_stmt (uint, stmt_t*);
 
@@ -92,7 +105,7 @@ void pp_branch (uint indent, branch_t* branch) {
 
 void pp_assign (assign_t* assign) {
     printf("SET %s[%s]%s <- ", RED, assign->target, RESET);
-    pp_expr(assign->expr);
+    pp_expr(assign->value);
     printf("\n");
 }
 
@@ -162,6 +175,12 @@ void pp_prog (prog_t* prog) {
 
 // Internal representation
 
+// In order to avoid duplicates, record seen positions
+// (loop) indicates that a statement continuation precedes it
+//      it is detected by the translator that sets the `advance` field to false
+// (merge) indicates that a statement has already been displayed
+//      because it is reachable from more than one point
+//      it is detected thanks to the below variable
 bool* explored_steps;
 
 void pp_rprog (rprog_t* prog) {

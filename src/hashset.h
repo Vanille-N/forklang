@@ -24,8 +24,9 @@ bool equals (compute_t* lhs, compute_t* rhs);
 
 hashset_t* create_hashset (uint size);
 void free_hashset (hashset_t* set);
-void insert (hashset_t* set, compute_t* item);
-bool query (hashset_t* set, compute_t* item);
+void insert (hashset_t* set, compute_t* item, ull hashed);
+bool query (hashset_t* set, compute_t* item, ull hashed);
+bool try_insert (hashset_t* set, compute_t* item);
 
 typedef struct {
     record_t* head;
