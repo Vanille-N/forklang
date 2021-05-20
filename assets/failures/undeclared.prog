@@ -1,0 +1,8 @@
+var foo;
+
+proc p
+    var bar;
+    bar := 1
+end
+
+reach bar
