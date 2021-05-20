@@ -154,14 +154,34 @@ reach : REACH expr { $$ = make_check($2); }
 
 
 int main (int argc, char **argv) {
-	if (argc <= 1) { yyerror("no file specified"); exit(1); }
-	yyin = fopen(argv[1],"r");
+	if (argc <= 1) {
+        yyerror("No file specified");
+        exit(1);
+    }
+    bool show_ast = false;
+    bool show_repr = false;
+    for (int i = 2; i < argc; i++) {
+        if (0 == strcmp("--ast", argv[i])) {
+            show_ast = true;
+        } else if (0 == strcmp("--repr", argv[i])) {
+            show_repr = true;
+        } else {
+            fprintf(stderr, "No such option '%s'", argv[i]);
+            exit(2);
+        }
+    } 
+	yyin = fopen(argv[1], "r");
     unique_var_id = 0;
     unique_stmt_id = 0;
 	if (!yyparse()) {
-        pp_prog(program);
+        if (show_ast) {
+            printf("\n=== PARSED AST ===\n\n");
+            pp_prog(program);
+        }
         rprog_t* repr = tr_prog(program);
-        printf("\n\n\n");
-        pp_rprog(repr);
+        if (show_repr) {
+            printf("\n=== INTERNAL REPRESENTATION ===\n\n");
+            pp_rprog(repr);
+        }
     }
 }
