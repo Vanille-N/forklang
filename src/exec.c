@@ -180,11 +180,14 @@ void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t*
 }
 
 sat_t exec_prog_all (rprog_t* prog) {
+    sat_t sat = blank_sat(prog);
+    // setup computation state
     compute_t* comp = malloc(sizeof(compute_t));
-    comp->sat = blank_sat(prog);
+    comp->sat = sat;
     comp->prog = prog;
     comp->env = blank_env(prog);
     comp->state = init_state(prog);
+    // explored records
     hashset_t* seen = create_hashset(1000);
     worklist_t* todo = create_worklist();
     insert(seen, comp);
@@ -192,7 +195,11 @@ sat_t exec_prog_all (rprog_t* prog) {
     free(comp->env);
     free(comp->state);
     free(comp);
+    uint DBG = 0;
     while ((comp = dequeue(todo))) {
+        printf("<<%d>>\n", DBG++);
+        fflush(stdout);
+        // loop as long as some configurations are unexplored
         pp_env(prog->nbglob, comp->env, prog->globs);
         for (uint k = 0; k < prog->nbcheck; k++) {
             if (!comp->sat[k] && 0 != eval_expr(prog->checks[k].cond, comp->env)) {
@@ -200,6 +207,7 @@ sat_t exec_prog_all (rprog_t* prog) {
                 printf("%d has been reached\n", k);
             }
         }
+        // advance all processes in parallel
         for (uint k = 0; k < prog->nbproc; k++) {
             compute_t* tmp = dup_compute(comp);
             exec_step_all_proc(seen, todo, k, tmp);
@@ -211,5 +219,5 @@ sat_t exec_prog_all (rprog_t* prog) {
         free(comp->state);
         free(comp);
     }
-    return comp->sat;
+    return sat;
 }
