@@ -1,28 +1,35 @@
 #include "exec.h"
 
-
-typedef int* env_t;
-typedef rstep_t** state_t;
-
-env_t blank_env (uint nbvar) {
-    env_t env = malloc(nbvar * sizeof(int));
-    for (uint i = 0; i < nbvar; i++) {
+env_t blank_env (rprog_t* prog) {
+    env_t env = malloc(prog->nbvar * sizeof(int));
+    for (uint i = 0; i < prog->nbvar; i++) {
         env[i] = 0;
     }
     return env;
 }
 
-state_t init_state (uint nbproc, rproc_t* procs) {
-    state_t state = malloc(nbproc * sizeof(rproc_t*));
-    for (uint i = 0; i < nbproc; i++) {
-        state[i] = procs[i].entrypoint;
+state_t init_state (rprog_t* prog) {
+    state_t state = malloc(prog->nbproc * sizeof(rstep_t*));
+    for (uint i = 0; i < prog->nbproc; i++) {
+        state[i] = prog->procs[i].entrypoint;
     }
     return state;
 }
 
-sat_t blank_sat (uint nbcheck) {
-    sat_t sat = malloc(nbcheck * sizeof(bool));
-    for (uint i = 0; i < nbcheck; i++) {
+compute_t* dup_compute (compute_t* comp) {
+    compute_t* cpy = malloc(sizeof(compute_t));
+    cpy->sat = comp->sat;
+    cpy->prog = comp->prog;
+    cpy->env = malloc(comp->prog->nbvar * sizeof(int));
+    for (uint i = 0; i < comp->prog->nbvar; i++) { cpy->env[i] = comp->env[i]; }
+    cpy->state = malloc(comp->prog->nbproc * sizeof(rstep_t));
+    for (uint i = 0; i < comp->prog->nbproc; i++) { cpy->state[i] = comp->state[i]; }
+    return cpy;
+}
+
+sat_t blank_sat (rprog_t* prog) {
+    sat_t sat = malloc(prog->nbcheck * sizeof(bool));
+    for (uint i = 0; i < prog->nbcheck; i++) {
         sat[i] = false;
     }
     return sat;
@@ -46,7 +53,7 @@ int eval_expr (rexpr_t* expr, env_t env) {
         case E_AND:
         case E_OR:
         case E_ADD:
-        case E_SUB:
+        case E_SUB: {
             int lhs = eval_expr(expr->val.binop->lhs, env);
             int rhs = eval_expr(expr->val.binop->rhs, env);
             switch (expr->type) {
@@ -59,14 +66,16 @@ int eval_expr (rexpr_t* expr, env_t env) {
                 case E_SUB: return lhs - rhs;
                 default: UNREACHABLE();
             }
+        }
         case E_NOT:
-        case E_NEG:
+        case E_NEG: {
             int val = eval_expr(expr->val.subexpr, env);
             if (expr->type == E_NOT) {
                 return !val;
             } else {
                 return -val;
             }
+        }
         default: UNREACHABLE();
     }
 }
@@ -75,7 +84,7 @@ void exec_assign (rassign_t* assign, env_t env) {
     env[assign->target->id] = eval_expr(assign->expr, env);
 }
 
-rstep_t* exec_step (rstep_t* step, env_t env) {
+rstep_t* exec_step_random (rstep_t* step, env_t env) {
     if (!step) return step; // NULL, blocked
     if (step->assign) {
         exec_assign(step->assign, env);
@@ -101,23 +110,102 @@ rstep_t* exec_step (rstep_t* step, env_t env) {
     }
 }
 
-sat_t exec_prog (rprog_t* prog) {
-    sat_t sat = blank_sat(prog->nbcheck);
+sat_t exec_prog_random (rprog_t* prog) {
+    compute_t comp;
+    comp.sat = blank_sat(prog);
+    comp.prog = prog;
     for (uint j = 0; j < 100; j++) {
-        env_t env = blank_env(prog->nbvar); 
-        state_t state = init_state(prog->nbproc, prog->procs);
+        comp.env = blank_env(prog); 
+        comp.state = init_state(prog);
         for (uint i = 0; i < 100; i++) {
             uint choose_proc = rand() % prog->nbproc;
-            state[choose_proc] = exec_step(state[choose_proc], env);
+            comp.state[choose_proc] = exec_step_random(comp.state[choose_proc], comp.env);
             for (uint k = 0; k < prog->nbcheck; k++) {
-                if (!sat[k] && 0 != eval_expr(prog->checks[k].cond, env)) {
-                    sat[k] = true;
+                if (!comp.sat[k] && 0 != eval_expr(prog->checks[k].cond, comp.env)) {
+                    comp.sat[k] = true;
                     printf("%d has been reached\n", k);
                 }
             }
         }
-        free(env);
-        free(state);
+        free(comp.env);
+        free(comp.state);
     }
-    return sat;
+    return comp.sat;
+}
+
+void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t* comp) {
+    printf("Advance %d\n", pid);
+    rstep_t* step = comp->state[pid];
+    if (!step) return; // NULL, blocked
+    if (step->assign) {
+        exec_assign(step->assign, comp->env);
+    }
+    uint satisfied [step->nbguarded];
+    uint nbsat = 0;
+    for (uint i = 0; i < step->nbguarded; i++) {
+        if (0 != eval_expr(step->guarded[i].cond, comp->env)) {
+            satisfied[nbsat++] = i;
+        }
+    }
+    if (step->nbguarded == 0) {
+        // unconditional advancement
+        // record if not already seen
+        comp->state[pid] = step->unguarded;
+        if (!query(seen, comp)) {
+            insert(seen, comp);
+            enqueue(todo, comp);
+        }
+    } else if (nbsat == 0) {
+        if (step->unguarded) {
+            // else clause
+            comp->state[pid] = step->unguarded;
+            if (!query(seen, comp)) {
+                insert(seen, comp);
+                enqueue(todo, comp);
+            }
+        } else {
+            // blocked
+            // state is obviously recorded
+        }
+    } else {
+        for (uint i = 0; i < nbsat; i++) {
+            // satisfied guards
+            comp->state[pid] = step->guarded[satisfied[i]].next;
+            if (!query(seen, comp)) {
+                insert(seen, comp);
+                enqueue(todo, comp);
+            }
+        }
+    }
+}
+
+sat_t exec_prog_all (rprog_t* prog) {
+    compute_t* comp = malloc(sizeof(compute_t));
+    comp->sat = blank_sat(prog);
+    comp->prog = prog;
+    comp->env = blank_env(prog);
+    comp->state = init_state(prog);
+    hashset_t* seen = create_hashset(1000);
+    worklist_t* todo = create_worklist();
+    insert(seen, comp);
+    enqueue(todo, comp);
+    free(comp->env);
+    free(comp->state);
+    free(comp);
+    while ((comp = dequeue(todo))) {
+        pp_env(prog->nbvar, comp->env, prog->vars);
+        for (uint k = 0; k < prog->nbcheck; k++) {
+            if (!comp->sat[k] && 0 != eval_expr(prog->checks[k].cond, comp->env)) {
+                comp->sat[k] = true;
+                printf("%d has been reached\n", k);
+            }
+        }
+        for (uint k = 0; k < prog->nbproc; k++) {
+            exec_step_all_proc(seen, todo, k, comp);
+        }
+        free(comp->env);
+        free(comp->state);
+        free(comp);
+    }
+    return comp->sat;
 }

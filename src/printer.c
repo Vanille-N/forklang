@@ -1,13 +1,13 @@
 #include "printer.h"
 
-const char* RED = "\e[1;31m";
-const char* GREEN = "\e[0;32m";
-const char* BLUE = "\e[1;34m";
-const char* PURPLE = "\e[1;35m";
-const char* CYAN = "\e[1;36m";
-const char* YELLOW = "\e[1;33m";
-const char* BLACK = "\e[0;90m";
-const char* RESET = "\e[0m";
+const char* RED = "\x1b[1;31m";
+const char* GREEN = "\x1b[0;32m";
+const char* BLUE = "\x1b[1;34m";
+const char* PURPLE = "\x1b[1;35m";
+const char* CYAN = "\x1b[1;36m";
+const char* YELLOW = "\x1b[1;33m";
+const char* BLACK = "\x1b[0;90m";
+const char* RESET = "\x1b[0m";
 
 void pp_stmt (uint, stmt_t*);
 
@@ -90,7 +90,7 @@ void pp_branch (uint indent, branch_t* branch) {
     }
 }
 
-void pp_assign (uint indent, assign_t* assign) {
+void pp_assign (assign_t* assign) {
     printf("SET %s[%s]%s <- ", RED, assign->target, RESET);
     pp_expr(assign->expr);
     printf("\n");
@@ -114,7 +114,7 @@ void pp_stmt (uint indent, stmt_t* stmt) {
                 printf("}\n");
                 break;
             case S_ASSIGN:
-                pp_assign(indent, stmt->val.assign);
+                pp_assign(stmt->val.assign);
                 break;
             case S_BREAK:
                 printf("%sBREAK%s\n", CYAN, RESET);
@@ -272,7 +272,7 @@ void pp_rstep (uint indent, rstep_t* step) {
         printf("%s<%d> %s%d guarded", YELLOW, step->id, BLACK, step->nbguarded);
         if (step->unguarded) { printf(", default"); }
         printf("%s", RESET);
-        for (int i = 0; i < step->nbguarded; i++) {
+        for (uint i = 0; i < step->nbguarded; i++) {
             pp_rguard(indent+1, step->guarded+i);
             if (step->advance) {
                 pp_rstep(indent+2, step->guarded[i].next);

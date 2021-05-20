@@ -1,5 +1,5 @@
 BIN = lang
-CFLAGS = -g
+CFLAGS = -g -Wall -Wextra -Wpedantic
 
 all: $(BIN)
 
@@ -14,7 +14,6 @@ CDEP = $(COBJ:%.o=%.d)
 
 # when compiling produce a .d file as well
 %.o: %.c
-	echo $(COBJ)
 	gcc -c -o $@ $(CFLAGS) -MD -MP -MF ${@:.o=.d} $<
 
 # don't fail on missing .d files
@@ -38,6 +37,7 @@ build/lang.tab.c: src/lang.y build/lex.yy.c |build
 
 build:
 	mkdir -p build
+	cp src/* build/
 
 clean:
 	rm -rf build

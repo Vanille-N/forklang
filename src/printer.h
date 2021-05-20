@@ -19,7 +19,7 @@ void pp_var (uint indent, var_t* var);
 const char* str_of_expr_e (expr_e e);
 void pp_expr (expr_t* expr);
 void pp_branch (uint indent, branch_t* branch);
-void pp_assign (uint indent, assign_t* assign);
+void pp_assign (assign_t* assign);
 void pp_stmt (uint indent, stmt_t* stmt);
 void pp_proc (proc_t* proc);
 void pp_check (check_t* check);

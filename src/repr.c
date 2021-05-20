@@ -51,17 +51,18 @@ rexpr_t* tr_expr (expr_t* in) {
     rexpr_t* out = malloc(sizeof(rexpr_t));
     out->type = in->type;
     switch (in->type) {
-        case E_VAR:
+        case E_VAR: {
             var_t* find;
-            if (find = locate_var(in->val.ident, nbloc, locs)) {
+            if ((find = locate_var(in->val.ident, nbloc, locs))) {
                 out->val.var = find;
-            } else if (find = locate_var(in->val.ident, nbglob, globs)) {
+            } else if ((find = locate_var(in->val.ident, nbglob, globs))) {
                 out->val.var = find;
             } else {
                 printf("Variable %s is not declared\n", in->val.ident);
                 exit(1);
             }
             break;
+        }
         case E_VAL:
             out->val.digit = in->val.digit;
             break;
@@ -123,9 +124,9 @@ void tr_stmt (
         case S_ASSIGN:
             (*out)->assign = malloc(sizeof(rassign_t));
             var_t* find;
-            if (find = locate_var(in->val.assign->target, nbloc, locs)) {
+            if ((find = locate_var(in->val.assign->target, nbloc, locs))) {
                 (*out)->assign->target = find;
-            } else if (find = locate_var(in->val.assign->target, nbglob, globs)) {
+            } else if ((find = locate_var(in->val.assign->target, nbglob, globs))) {
                 (*out)->assign->target = find;
             } else {
                 printf("Variable %s is not declared\n", in->val.assign->target);
@@ -205,7 +206,6 @@ rstep_t* tr_branch_list (
                 advance, skipto, breakto);
             return end;
         } else {
-            uint n = *nb;
             *loc = malloc(*nb * sizeof(rguard_t));
             rstep_t* end = malloc(sizeof(rstep_t));
             tr_stmt(
