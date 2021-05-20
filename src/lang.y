@@ -49,7 +49,7 @@ prog_t* program;
 %type <check> checks reach
 %type <stmt> stmts stmt
 %type <expr> expr
-%type <branch> branches branch
+%type <branch> branches branch else
 
 %token DECL SEQ BRANCH THEN IF FI DO OD
 %token ELSE BREAK NOT ASSIGN PROC END REACH SKIP OPEN CLOSE
@@ -104,14 +104,18 @@ stmt : IDENT ASSIGN expr { $$ = make_stmt(S_ASSIGN, assign_as_s(make_assign($1, 
      | SKIP { $$ = make_stmt(S_SKIP, null_as_s()); }
      ;
 
-branches : branch { $$ = $1; }
+branches : branch { ($$ = $1)->next = make_branch(NULL, make_stmt(S_SKIP, null_as_s())); }
+         | else { $$ = $1; }
          | branch BRANCH branches { ($$ = $1)->next = $3; }
          ;
 
 branch : expr THEN stmts { $$ = make_branch($1, $3); }
        ;
 
-expr : INT { $$ = make_expr(E_VAL, int_as_e($1)); }
+else : ELSE THEN stmts { $$ = make_branch(NULL, $3); }
+     ;
+
+expr : INT { $$ = make_expr(E_VAL, uint_as_e($1)); }
      | IDENT { $$ = make_expr(E_VAR, str_as_e($1)); }
      | expr ADD expr { $$ = make_expr(E_ADD, binop_as_e(make_binop($1, $3))); }
      | expr SUB expr { $$ = make_expr(E_SUB, binop_as_e(make_binop($1, $3))); }
@@ -123,7 +127,6 @@ expr : INT { $$ = make_expr(E_VAL, int_as_e($1)); }
      | OPEN expr CLOSE { $$ = $2; }
      | NOT expr { $$ = make_expr(E_NOT, expr_as_e($2)); }
      | SUB expr { $$ = make_expr(E_NEG, expr_as_e($2)); }
-     | ELSE { $$ = make_expr(E_ELSE, null_as_e()); }
      ;
 
 
@@ -145,5 +148,10 @@ reach : REACH expr { $$ = make_check($2); }
 int main (int argc, char **argv) {
 	if (argc <= 1) { yyerror("no file specified"); exit(1); }
 	yyin = fopen(argv[1],"r");
-	if (!yyparse()) pp_prog(program);
+	if (!yyparse()) {
+        pp_prog(program);
+        rprog_t* repr = tr_prog(program);
+        printf("\n\n\n");
+        pp_rprog(repr);
+    }
 }

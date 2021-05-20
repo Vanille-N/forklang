@@ -67,7 +67,7 @@ proc_t* make_proc (char* name, var_t* vars, stmt_t* stmts) {
     return proc;
 }
 
-expr_u int_as_e (int i) {
+expr_u uint_as_e (unsigned i) {
     expr_u val;
     val.digit = i;
     return val;
@@ -75,7 +75,7 @@ expr_u int_as_e (int i) {
 
 expr_u expr_as_e (expr_t* expr) {
     expr_u val;
-    val.expr = expr;
+    val.subexpr = expr;
     return val;
 }
 
@@ -90,10 +90,6 @@ expr_u binop_as_e (binop_t* binop) {
     expr_u val;
     val.binop = binop;
     return val;
-}
-
-expr_u null_as_e () {
-    return int_as_e(0);
 }
 
 expr_u str_as_e (char* ident) {
