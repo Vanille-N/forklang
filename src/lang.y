@@ -164,17 +164,20 @@ int main (int argc, char **argv) {
     }
     bool show_ast = false;
     bool show_repr = false;
-    bool execrand = false;
-    bool execall = false;
+    bool show_dot = false;
+    bool exec_rand = false;
+    bool exec_all = false;
     for (int i = 2; i < argc; i++) {
         if (0 == strcmp("--ast", argv[i])) {
             show_ast = true;
         } else if (0 == strcmp("--repr", argv[i])) {
             show_repr = true;
+        } else if (0 == strcmp("--dot", argv[i])) {
+            show_dot = true;
         } else if (0 == strcmp("--rand", argv[i])) {
-            execrand = true;
+            exec_rand = true;
         } else if (0 == strcmp("--all", argv[i])) {
-            execall = true;
+            exec_all = true;
         } else {
             fprintf(stderr, "No such option '%s'", argv[i]);
             exit(2);
@@ -194,10 +197,13 @@ int main (int argc, char **argv) {
             printf("\n=== INTERNAL REPRESENTATION ===\n\n");
             pp_rprog(repr);
         }
-        if (execrand) {
+        if (show_dot) {
+            dot_rprog(repr);
+        }
+        if (exec_rand) {
             exec_prog_random(repr);
         }
-        if (execall) {
+        if (exec_all) {
             exec_prog_all(repr);
         }
         free_var();

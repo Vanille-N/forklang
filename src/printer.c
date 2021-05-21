@@ -345,3 +345,136 @@ void pp_rguard (uint indent, rguard_t* guard) {
     printf(" %sjump [%d]%s", RED, guard->next->id, RESET);
 }
 
+
+
+
+// Dot-readable
+
+void dot_indent (uint num) {
+    for (uint i = 0; i <= num; i++) {
+        printf("  ");
+    }
+}
+
+
+void dot_rprog (rprog_t* prog) {
+    explored_steps = malloc(prog->nbstep * sizeof(bool));
+    for (uint i = 0; i < prog->nbstep; i++) { explored_steps[i] = false; }
+    printf("strict digraph {\n");
+    for (uint i = 0; i < prog->nbglob; i++) {
+        dot_rvar(0, prog->globs+i);
+    }
+    for (uint i = 0; i < prog->nbproc; i++) {
+        dot_rproc(prog->procs+i);
+    }
+    for (uint i = 0; i < prog->nbcheck; i++) {
+        dot_rcheck(prog->checks+i);
+    }
+    printf("}\n");
+    free(explored_steps);
+}
+
+void dot_rvar (uint indent, var_t* var) {
+    printf("gl%d_%s\n", var->id, var->name);
+}
+
+void dot_rcheck (rcheck_t* check) {
+//    dot_indent(0);
+//    printf("%sreach? %s", PURPLE, GREEN);
+//    dot_rexpr(check->cond);
+//    printf("%s\n", RESET);
+}
+
+void dot_rexpr (rexpr_t* expr) {
+//    switch (expr->type) {
+//        case E_VAR:
+//            printf("%s{%d as '%s'}%s", CYAN, expr->val.var->id, expr->val.var->name, GREEN);
+//            break;
+//        case E_VAL:
+//            printf("(%d)", expr->val.digit);
+//            break;
+//        case E_LESS:
+//        case E_GREATER:
+//        case E_EQUAL:
+//        case E_AND:
+//        case E_OR:
+//        case E_ADD:
+//        case E_SUB:
+//            printf("(%s ", str_of_expr_e(expr->type));
+//            dot_rexpr(expr->val.binop->lhs);
+//            printf(" ");
+//            dot_rexpr(expr->val.binop->rhs);
+//            printf(")");
+//            break;
+//        case E_NOT:
+//        case E_NEG:
+//            printf("(%s ", str_of_expr_e(expr->type));
+//            dot_rexpr(expr->val.subexpr);
+//            printf(")");
+//            break;
+//        default:
+//            UNREACHABLE();
+//    }
+}
+
+void dot_rproc (rproc_t* proc) {
+    printf("th_%s -> st_%d\n", proc->name, proc->entrypoint->id);
+    for (uint i = 0; i < proc->nbloc; i++) {
+        dot_rvar(1, proc->locs+i);
+    }
+    dot_rstep(1, proc->entrypoint);
+}
+
+void dot_rstep (uint indent, rstep_t* step) {
+    if (explored_steps[step->id]) return;
+    explored_steps[step->id] = true;
+    if (step->assign) {
+        dot_rassign(step->assign);
+        if (step->unguarded) {
+            printf("st_%d -> st_%d\n", step->id, step->unguarded->id);
+        } else {
+            printf("st_%d\n", step->id);
+        }
+        if (step->advance) {
+            if (step->unguarded) {
+                dot_rstep(indent, step->unguarded);
+            }
+        }
+    } else if (step->nbguarded > 0) {
+        for (uint i = 0; i < step->nbguarded; i++) {
+            printf("st_%d -> g_%d_%d\n", step->id, step->id, i);
+            dot_rguard(indent+1, step->id, i, step->guarded+i);
+            if (step->advance) {
+                dot_rstep(indent+2, step->guarded[i].next);
+            }
+        }
+        if (step->unguarded) {
+            printf("st_%d -> st_%d\n", step->id, step->unguarded->id);
+            dot_rstep(indent+2, step->unguarded);
+        }
+    } else {
+        if (step->unguarded) {
+            printf("st_%d -> st_%d\n", step->id, step->unguarded->id);
+        } else {
+            printf("st_%d\n", step->id);
+            return;
+        }
+        if (step->advance) {
+            if (step->unguarded) {
+                dot_rstep(indent, step->unguarded);
+            }
+        }
+    }
+}
+
+void dot_rassign (rassign_t* assign) {
+//    printf("%s{%d as '%s'}%s <- %s", CYAN, assign->target->id, assign->target->name, RESET, GREEN);
+//    dot_rexpr(assign->expr);
+//    printf("%s", RESET);
+}
+
+void dot_rguard (uint indent, uint parent_id, uint idx, rguard_t* guard) {
+    dot_rexpr(guard->cond);
+    printf("g_%d_%d -> st_%d\n", parent_id, idx, guard->next->id);
+}
+
