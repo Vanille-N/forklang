@@ -192,6 +192,8 @@ int main (int argc, char **argv) {
         }
         rprog_t* repr = tr_prog(program);
         free_ast();
+        fclose(yyin);
+        yylex_destroy();
         if (show_repr) {
             pp_repr(stdout, true, repr);
         }
@@ -212,13 +214,18 @@ int main (int argc, char **argv) {
             free(cmd);
         }
         if (exec_rand) {
-            exec_prog_random(repr);
+            sat_t sat = exec_prog_random(repr);
+            free(sat);
         }
         if (exec_all) {
-            exec_prog_all(repr);
+            sat_t sat = exec_prog_all(repr);
+            free(sat);
         }
         free_var();
         free_repr();
+    } else {
+        fclose(yyin);
+        yylex_destroy();
     }
-    fclose(yyin);
+    free_ident();
 }

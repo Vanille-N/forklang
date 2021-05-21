@@ -2,6 +2,7 @@
 
 #include "memreg.h"
 #include "stdlib.h"
+#include "string.h"
 
 memblock_t* ast_alloc_registry = NULL;
 memblock_t* var_alloc_registry = NULL;
@@ -15,10 +16,11 @@ void free_var () { register_free(&var_alloc_registry); }
 // make_X : construct X from essential items
 // X_as_Y : put X inside an union to make it a Y
 
-var_t* make_ident (char* s, uint id) {
+var_t* make_ident (char* name, uint id) {
     var_t* var = malloc(sizeof(var_t));
     register_var(var);
-    var->name = s;
+    var->name = strdup(name);
+    register_var(var->name);
     var->next = NULL;
     var->id = id;
     return var;

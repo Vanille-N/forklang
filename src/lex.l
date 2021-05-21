@@ -3,6 +3,15 @@
 %option nounput
 %option noinput
 
+%{
+
+#include "memreg.h"
+memblock_t* ident_alloc_registry = NULL;
+void register_ident (void* ptr) { register_alloc(&ident_alloc_registry, ptr); }
+void free_ident () { register_free(&ident_alloc_registry); }
+
+%}
+
 DIG	[0-9]
 
 %%
@@ -37,7 +46,7 @@ DIG	[0-9]
 
 {DIG}+ { yylval.digit = (uint)atoi(yytext); return INT; }
 
-[a-z_][a-z0-9]* { yylval.ident = strdup(yytext); return IDENT; }
+[a-z_][a-z0-9]* { register_ident(yylval.ident = strdup(yytext)); return IDENT; }
 
 [ \t\n] { }
 
