@@ -40,7 +40,7 @@ uint unique_stmt_id;
 
 %union {
 	char* ident;
-    int digit;
+    uint digit;
 	var_t* var;
     proc_t* proc;
     check_t* check;
@@ -188,15 +188,28 @@ int main (int argc, char **argv) {
     unique_stmt_id = 0;
 	if (!yyparse()) {
         if (show_ast) {
-            pp_ast(true, program);
+            pp_ast(stdout, true, program);
         }
         rprog_t* repr = tr_prog(program);
         free_ast();
         if (show_repr) {
-            pp_rprog(repr);
+            pp_repr(stdout, true, repr);
         }
         if (show_dot) {
-            dot_rprog(repr);
+            size_t len = strlen(argv[1]);
+            char* fname_dot = malloc((len+4) * sizeof(char));
+            strcpy(fname_dot, argv[1]);
+            strcpy(fname_dot+len, ".dot");
+            FILE* fdot = fopen(fname_dot, "w");
+            pp_dot(fdot, repr);
+            fclose(fdot);
+            printf("%s\n", fname_dot);
+            char* cmd = malloc((len*2 + 50) * sizeof(char));
+            sprintf(cmd, "dot -Tpng %s.dot -o %s.png", argv[1], argv[1]);
+            printf("$ %s\n", cmd);
+            system(cmd);
+            free(fname_dot);
+            free(cmd);
         }
         if (exec_rand) {
             exec_prog_random(repr);

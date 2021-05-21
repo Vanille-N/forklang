@@ -21,7 +21,7 @@ CDEP = $(COBJ:%.o=%.d)
 -include $(CDEP)
 
 lang: $(COBJ) $(HCPY) build/lang.tab.c
-	gcc -o $@ $+
+	gcc -o $@ $(CFLAGS) $+
 
 build/%.h: src/%.h |build
 	cp $< $@
@@ -43,6 +43,6 @@ clean:
 	rm -rf build
 	rm -f $(BIN)
 	rm -f report.bison vgcore.*
-	rm -f *.png
+	rm -f assets/*.png assets/*.dot
 
 .PHONY: clean

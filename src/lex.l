@@ -1,5 +1,7 @@
 %option noyywrap
 %option yylineno
+%option nounput
+%option noinput
 
 DIG	[0-9]
 
@@ -33,7 +35,7 @@ DIG	[0-9]
 "("      { return OPEN; }
 ")"      { return CLOSE; }
 
-{DIG}+ { yylval.digit = atoi(yytext); return INT; }
+{DIG}+ { yylval.digit = (uint)atoi(yytext); return INT; }
 
 [a-z_][a-z0-9]* { yylval.ident = strdup(yytext); return IDENT; }
 
