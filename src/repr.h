@@ -14,6 +14,8 @@ typedef unsigned uint;
     exit(1); \
 }
 
+void free_repr ();
+
 // A different representation, more suited for execution
 // Not a tree but an execution graph
 

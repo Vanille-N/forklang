@@ -4,6 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+// Keep track of allocations for the ast
+void free_ast ();
+void free_var ();
+
 struct expr;
 struct stmt;
 

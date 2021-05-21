@@ -1,6 +1,12 @@
 #include "repr.h"
 
 #include "printer.h"
+#include "memreg.h"
+
+memblock_t* repr_alloc_registry = NULL;
+
+void register_repr (void* ptr) { register_alloc(&repr_alloc_registry, ptr); }
+void free_repr () { register_free(&repr_alloc_registry); }
 
 // Translate from ast to repr
 // Ast is fine for parsing and for display, but it is poorly suited
@@ -24,6 +30,7 @@ char* procname;
 
 rprog_t* tr_prog (prog_t* in) {
     rprog_t* out = malloc(sizeof(rprog_t));
+    register_repr(out);
     out->nbstep = in->nbstmt;
     out->nbvar = in->nbvar;
     // Write global variables
@@ -42,6 +49,7 @@ uint tr_var_list (var_t** loc, var_t* in) {
         var_t* cur = in;
         while (cur) { len++; cur = cur->next; }
         *loc = malloc(len * sizeof(var_t));
+        register_repr(*loc);
     }
     uint n = 0;
     var_t* cur = in;
@@ -60,6 +68,7 @@ uint tr_check_list (rcheck_t** loc, check_t* in) {
         check_t* cur = in;
         while (cur) { len++; cur = cur->next; }
         *loc = malloc(len * sizeof(check_t));
+        register_repr(*loc);
     }
     // no local variables during checks
     nbloc = 0;
@@ -78,6 +87,7 @@ uint tr_check_list (rcheck_t** loc, check_t* in) {
 
 rexpr_t* tr_expr (expr_t* in) {
     rexpr_t* out = malloc(sizeof(rexpr_t));
+    register_repr(out);
     out->type = in->type;
     switch (in->type) {
         case E_VAR:
@@ -94,6 +104,7 @@ rexpr_t* tr_expr (expr_t* in) {
         case E_ADD:
         case E_SUB:
             out->val.binop = malloc(sizeof(rbinop_t));
+            register_repr(out->val.binop);
             out->val.binop->lhs = tr_expr(in->val.binop->lhs);
             out->val.binop->rhs = tr_expr(in->val.binop->rhs);
             break;
@@ -128,6 +139,7 @@ uint tr_proc_list (rproc_t** loc, proc_t* in) {
         proc_t* cur = in;
         while (cur) { len++; cur = cur->next; }
         *loc = malloc(len * sizeof(rproc_t));
+        register_repr(*loc);
     }
     uint n = 0;
     proc_t* cur = in;
@@ -152,6 +164,7 @@ uint tr_proc_list (rproc_t** loc, proc_t* in) {
 
 rassign_t* tr_assign (assign_t* in) {
     rassign_t* out = malloc(sizeof(rassign_t));
+    register_repr(out);
     out->target = locate_var(in->target);
     out->expr = tr_expr(in->value);
     return out;
@@ -162,6 +175,7 @@ void tr_stmt (
     bool advance, rstep_t* skipto, rstep_t* breakto
 ) {
     *out = malloc(sizeof(rstep_t));
+    register_repr(*out);
     (*out)->assign = NULL;
     (*out)->id = in->id;
     switch (in->type) {
@@ -174,6 +188,7 @@ void tr_stmt (
             (*out)->guarded = NULL;
             if (in->next) {
                 (*out)->unguarded = malloc(sizeof(rstep_t));
+                register_repr((*out)->unguarded);
                 tr_stmt(
                     &((*out)->unguarded), in->next,
                     advance, skipto, breakto); // normal transfer
@@ -193,6 +208,7 @@ void tr_stmt (
             (*out)->advance = true;
             if (in->next) {
                 rstep_t* next = malloc(sizeof(rstep_t));
+                register_repr(next);
                 tr_stmt(
                     &next, in->next,
                     advance, skipto, breakto);
@@ -215,6 +231,7 @@ void tr_stmt (
             (*out)->advance = true;
             if (in->next) {
                 rstep_t* next = malloc(sizeof(rstep_t));
+                register_repr(next);
                 tr_stmt(
                     &next, in->next,
                     advance, skipto, breakto);
@@ -247,6 +264,7 @@ rstep_t* tr_branch_list (
         branch_t* cur = in;
         while (cur && cur->cond) { len++; cur = cur->next; }
         *loc = malloc(len * sizeof(rguard_t));
+        register_repr(*loc);
         *nb = len;
     }
     uint n = 0;
@@ -263,6 +281,7 @@ rstep_t* tr_branch_list (
     // else clause
     if (cur) {
         rstep_t* end = malloc(sizeof(rstep_t));
+        register_repr(end);
         tr_stmt(
             &end, cur->stmt,
             advance, skipto, breakto);

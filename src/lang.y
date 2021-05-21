@@ -8,6 +8,7 @@
 #include "ast.h"
 #include "printer.h"
 #include "exec.h"
+#include "repr.h"
 
 extern int yylineno;
 
@@ -187,6 +188,7 @@ int main (int argc, char **argv) {
             printf("\n=== PARSED AST ===\n\n");
             pp_prog(program);
         }
+        free_ast();
         rprog_t* repr = tr_prog(program);
         if (show_repr) {
             printf("\n=== INTERNAL REPRESENTATION ===\n\n");
@@ -198,5 +200,8 @@ int main (int argc, char **argv) {
         if (execall) {
             exec_prog_all(repr);
         }
+        free_var();
+        free_repr();
     }
+    fclose(yyin);
 }
