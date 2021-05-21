@@ -1,8 +1,7 @@
 #ifndef EXEC_H
 #define EXEC_H
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <stdbool.h>
 #include "repr.h"
 
 typedef bool* sat_t;
@@ -21,7 +20,5 @@ compute_t* dup_compute (compute_t* comp);
 
 sat_t exec_prog_random (rprog_t* prog);
 sat_t exec_prog_all (rprog_t* prog);
-
-#include "hashset.h"
 
 #endif // EXEC_H

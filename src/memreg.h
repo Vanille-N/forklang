@@ -1,8 +1,6 @@
 #ifndef MEMREG_H
 #define MEMREG_H
 
-#include <stdlib.h>
-
 typedef unsigned uint;
 
 typedef struct memblock {

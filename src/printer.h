@@ -1,8 +1,5 @@
 #ifndef PRINTER_H
 #define PRINTER_H
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "ast.h"
 #include "repr.h"
@@ -11,6 +8,8 @@ typedef unsigned uint;
 
 // Pretty-print parsed ast
 // (i.e. "Niveau 1")
+
+void pp_ast (bool color, prog_t* prog);
 
 void pp_indent (uint num);
 
@@ -40,12 +39,12 @@ void pp_rstep (uint indent, rstep_t* step);
 // Dump dot-readable format
 
 void dot_rprog (rprog_t* prog);
-void dot_rvar (uint indent, var_t* var);
-void dot_rcheck (rcheck_t* check);
+void dot_rvar (var_t* var);
+void dot_rcheck (rcheck_t* check, uint id);
 void dot_rexpr (rexpr_t* expr);
 void dot_rproc (rproc_t* proc);
 void dot_rassign (rassign_t* assign);
-void dot_rguard (uint indent, uint parent_id, uint idx, rguard_t* guard);
-void dot_rstep (uint indent, rstep_t* step);
+void dot_rguard (uint parent_id, uint idx, rguard_t* guard);
+void dot_rstep (rstep_t* step);
 
 #endif // PRINTER_H

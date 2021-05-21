@@ -1,10 +1,7 @@
 #ifndef HASHSET_H
 #define HASHSET_H
 
-#include <stdio.h>
-#include <stdbool.h>
 #include "exec.h"
-#include "repr.h"
 
 typedef unsigned long long ull;
 

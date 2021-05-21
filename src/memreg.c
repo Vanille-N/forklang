@@ -1,5 +1,7 @@
 #include "memreg.h"
 
+#include <stdlib.h>
+
 const uint MBLOCK_SIZE = 100;
 
 void register_alloc (memblock_t** registry, void* ptr) {

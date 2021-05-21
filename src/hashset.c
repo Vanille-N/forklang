@@ -1,5 +1,7 @@
 #include "hashset.h"
 
+#include <stdlib.h>
+
 const ull MOD = 412578559962553;
 const ull MUL = 7563254987;
 const ull ADD = 486651;

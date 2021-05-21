@@ -1,6 +1,9 @@
 #include "repr.h"
 
-#include "printer.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "memreg.h"
 
 memblock_t* repr_alloc_registry = NULL;

@@ -1,5 +1,10 @@
 #include "exec.h"
 
+#include <stdlib.h>
+#include <stdio.h>
+
+#include "hashset.h"
+
 env_t blank_env (rprog_t* prog) {
     env_t env = malloc(prog->nbvar * sizeof(int));
     for (uint i = 0; i < prog->nbvar; i++) {

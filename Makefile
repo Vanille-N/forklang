@@ -42,6 +42,7 @@ build:
 clean:
 	rm -rf build
 	rm -f $(BIN)
-	rm -f report.bison
+	rm -f report.bison vgcore.*
+	rm -f *.png
 
 .PHONY: clean

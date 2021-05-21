@@ -1,9 +1,7 @@
 #ifndef AST_H
 #define AST_H
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
+typedef unsigned int uint;
 
 // Keep track of allocations for the ast
 void free_ast ();

@@ -16,7 +16,7 @@ int yylex ();
 
 void yyerror (const char *s) {
 	fflush(stdout);
-	fprintf(stderr, "%s\nat line %d:%d", s, yylineno);
+	fprintf(stderr, "%s\nat line %d", s, yylineno);
 }
 
 /***************************************************************************/
@@ -188,13 +188,11 @@ int main (int argc, char **argv) {
     unique_stmt_id = 0;
 	if (!yyparse()) {
         if (show_ast) {
-            printf("\n=== PARSED AST ===\n\n");
-            pp_prog(program);
+            pp_ast(true, program);
         }
         rprog_t* repr = tr_prog(program);
         free_ast();
         if (show_repr) {
-            printf("\n=== INTERNAL REPRESENTATION ===\n\n");
             pp_rprog(repr);
         }
         if (show_dot) {
