@@ -44,9 +44,11 @@ hashset_t* create_hashset (uint size) {
 }
 
 void free_record (record_t* rec) {
-    if (rec) {
-        free_record(rec->next);
-        free(rec);
+    while (rec) {
+        record_t* tmp = rec;
+        rec = rec->next;
+        free_compute(tmp->data);
+        free(tmp);
     }
 }
 
@@ -54,6 +56,7 @@ void free_hashset (hashset_t* set) {
     for (uint i = 0; i < set->size; i++) {
         free_record(set->records[i]);
     }
+    free(set->records);
     free(set);
 }
 

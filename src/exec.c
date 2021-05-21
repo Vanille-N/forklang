@@ -35,6 +35,12 @@ compute_t* dup_compute (compute_t* comp) {
     return cpy;
 }
 
+void free_compute (compute_t* comp) {
+    free(comp->env);
+    free(comp->state);
+    free(comp);
+}
+
 sat_t blank_sat (rprog_t* prog) {
     sat_t sat = malloc(prog->nbcheck * sizeof(bool));
     for (uint i = 0; i < prog->nbcheck; i++) {
@@ -227,9 +233,7 @@ sat_t exec_prog_all (rprog_t* prog) {
     worklist_t* todo = create_worklist();
     insert(seen, comp, hash(comp));
     enqueue(todo, comp);
-    free(comp->env);
-    free(comp->state);
-    free(comp);
+    free_compute(comp);
     //uint DBG = 0;
     while ((comp = dequeue(todo))) {
         //printf("<<%d>>\n", DBG++);
@@ -246,13 +250,11 @@ sat_t exec_prog_all (rprog_t* prog) {
         for (uint k = 0; k < prog->nbproc; k++) {
             compute_t* tmp = dup_compute(comp);
             exec_step_all_proc(seen, todo, k, tmp);
-            free(tmp->env);
-            free(tmp->state);
-            free(tmp);
+            free_compute(tmp);
         }
-        free(comp->env);
-        free(comp->state);
-        free(comp);
+        free_compute(comp);
     }
+    free_hashset(seen);
+    free(todo);
     return sat;
 }

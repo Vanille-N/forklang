@@ -17,6 +17,7 @@ typedef struct {
 } compute_t;
 
 compute_t* dup_compute (compute_t* comp);
+void free_compute (compute_t* comp);
 
 sat_t exec_prog_random (rprog_t* prog);
 sat_t exec_prog_all (rprog_t* prog);
