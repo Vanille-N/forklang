@@ -80,7 +80,7 @@ uint unique_stmt_id;
 
 prog : glob_decls procs checks {
         program = make_prog($1, $2, $3);
-        program->nbglob = unique_var_id;
+        program->nbvar = unique_var_id;
         program->nbstmt = unique_stmt_id;
      }
      ;

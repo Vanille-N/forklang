@@ -39,6 +39,10 @@ sat_t blank_sat (rprog_t* prog) {
 }
 
 void pp_env (rprog_t* prog, env_t env) {
+    for (uint i = 0; i < prog->nbvar; i++) {
+        printf("%d ", env[i]);
+    }
+    printf("\n");
     printf("Global ");
     for (uint i = 0; i < prog->nbglob; i++) {
         printf("%s=%d ", prog->globs[i].name, env[prog->globs[i].id]);
@@ -134,11 +138,18 @@ sat_t exec_prog_random (rprog_t* prog) {
     for (uint j = 0; j < 100; j++) {
         comp.env = blank_env(prog); 
         comp.state = init_state(prog);
+        //printf("RESTART\n");
+        //pp_env(prog, comp.env);
+        //printf("=======\n");
         for (uint i = 0; i < 100; i++) {
             // choose the process that will advance
             uint choose_proc = (uint)rand() % prog->nbproc;
+            //printf("\n%d advances\n", choose_proc);
             // calculate next step of the computation
+            //if (comp.state[choose_proc]) printf("  %d old state\n", comp.state[choose_proc]->id);
+            //pp_env(prog, comp.env);
             comp.state[choose_proc] = exec_step_random(comp.state[choose_proc], comp.env);
+            //if (comp.state[choose_proc]) printf("  %d new state\n", comp.state[choose_proc]->id);
             // update reachability
             for (uint k = 0; k < prog->nbcheck; k++) {
                 if (!comp.sat[k] && 0 != eval_expr(prog->checks[k].cond, comp.env)) {
@@ -155,7 +166,7 @@ sat_t exec_prog_random (rprog_t* prog) {
 
 // Explore (i.e. add to the worklist with their updated environment) all successors of a state
 void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t* comp) {
-    printf("Advance %d\n", pid);
+    //printf("Advance %d\n", pid);
     rstep_t* step = comp->state[pid];
     if (!step) return; // NULL, blocked
     if (step->assign) {
@@ -214,12 +225,12 @@ sat_t exec_prog_all (rprog_t* prog) {
     free(comp->env);
     free(comp->state);
     free(comp);
-    uint DBG = 0;
+    //uint DBG = 0;
     while ((comp = dequeue(todo))) {
-        printf("<<%d>>\n", DBG++);
+        //printf("<<%d>>\n", DBG++);
         fflush(stdout);
         // loop as long as some configurations are unexplored
-        pp_env(prog, comp->env);
+        //pp_env(prog, comp->env);
         for (uint k = 0; k < prog->nbcheck; k++) {
             if (!comp->sat[k] && 0 != eval_expr(prog->checks[k].cond, comp->env)) {
                 comp->sat[k] = true;
