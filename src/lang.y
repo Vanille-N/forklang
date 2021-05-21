@@ -154,9 +154,6 @@ reach : REACH expr { $$ = make_check($2); }
 
 #include "lex.yy.c"
 
-/****************************************************************************/
-
-
 int main (int argc, char **argv) {
 	if (argc <= 1) {
         yyerror("No file specified");
@@ -179,11 +176,14 @@ int main (int argc, char **argv) {
         } else if (0 == strcmp("--all", argv[i])) {
             exec_all = true;
         } else {
-            fprintf(stderr, "No such option '%s'", argv[i]);
-            exit(2);
+            fprintf(stderr, "No such option '%s'\n", argv[i]);
+            exit(1);
         }
     } 
-	yyin = fopen(argv[1], "r");
+	if (!(yyin = fopen(argv[1], "r"))) {
+        fprintf(stderr, "File not found '%s'\n", argv[1]);
+        exit(2);
+    }
     unique_var_id = 0;
     unique_stmt_id = 0;
 	if (!yyparse()) {
@@ -199,7 +199,7 @@ int main (int argc, char **argv) {
         }
         if (show_dot) {
             size_t len = strlen(argv[1]);
-            char* fname_dot = malloc((len+4) * sizeof(char));
+            char* fname_dot = malloc((len+5) * sizeof(char));
             strcpy(fname_dot, argv[1]);
             strcpy(fname_dot+len, ".dot");
             FILE* fdot = fopen(fname_dot, "w");
