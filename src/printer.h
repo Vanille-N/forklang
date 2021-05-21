@@ -16,7 +16,7 @@ void pp_ast (FILE* f, bool color, prog_t* prog);
 void pp_repr (FILE* f, bool color, rprog_t* prog);
 
 // Dot-readable format 
-void pp_dot (FILE* f, rprog_t* prog); // dump
-void make_dot (FILE* f, rprog_t* prog); // render
+void pp_dot (FILE* fdest, rprog_t* prog); // dump
+void make_dot (char* fname_src, rprog_t* prog); // render
 
 #endif // PRINTER_H

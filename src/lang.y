@@ -154,70 +154,71 @@ reach : REACH expr { $$ = make_check($2); }
 
 #include "lex.yy.c"
 
-int main (int argc, char **argv) {
-	if (argc <= 1) {
+typedef struct {
+    char* fname_src;
+    bool show_ast, show_repr, show_dot;
+    bool exec_rand, exec_all;
+    bool nocolor;
+} args_t;
+
+args_t* parse_args (int argc, char** argv) {
+    args_t* args = malloc(sizeof(args_t));
+    if (argc <= 1) {
         yyerror("No file specified");
         exit(1);
     }
-    bool show_ast = false;
-    bool show_repr = false;
-    bool show_dot = false;
-    bool exec_rand = false;
-    bool exec_all = false;
+    args->fname_src = argv[1];
+    args->show_ast = args->show_repr = args->show_dot = false;
+    args->exec_rand = args->exec_all = false;
+    char* toggles [] = {
+        "--ast", "--repr", "--dot",
+        "--rand", "--all",
+        "--no-color",
+        NULL,
+    };
+    bool* targets [] = {
+        &args->show_ast, &args->show_repr, &args->show_dot,
+        &args->exec_rand, &args->exec_all,
+        &args->nocolor,
+    };
     for (int i = 2; i < argc; i++) {
-        if (0 == strcmp("--ast", argv[i])) {
-            show_ast = true;
-        } else if (0 == strcmp("--repr", argv[i])) {
-            show_repr = true;
-        } else if (0 == strcmp("--dot", argv[i])) {
-            show_dot = true;
-        } else if (0 == strcmp("--rand", argv[i])) {
-            exec_rand = true;
-        } else if (0 == strcmp("--all", argv[i])) {
-            exec_all = true;
-        } else {
+        int j;
+        for (j = 0; toggles[j]; j++) {
+            if (0 == strcmp(toggles[j], argv[i])) {
+                *targets[j] = true;
+                break; 
+            }
+        }
+        if (!toggles[j]) {
             fprintf(stderr, "No such option '%s'\n", argv[i]);
             exit(1);
-        }
-    } 
-	if (!(yyin = fopen(argv[1], "r"))) {
-        fprintf(stderr, "File not found '%s'\n", argv[1]);
+        }    
+    }
+    return args;
+}
+
+
+int main (int argc, char **argv) {
+    args_t* args = parse_args(argc, argv);
+	if (!(yyin = fopen(args->fname_src, "r"))) {
+        fprintf(stderr, "File not found '%s'\n", args->fname_src);
         exit(2);
     }
     unique_var_id = 0;
     unique_stmt_id = 0;
 	if (!yyparse()) {
-        if (show_ast) {
-            pp_ast(stdout, true, program);
-        }
+        if (args->show_ast) pp_ast(stdout, !args->nocolor, program);
         rprog_t* repr = tr_prog(program);
         free_ast();
         fclose(yyin);
         yylex_destroy();
-        if (show_repr) {
-            pp_repr(stdout, true, repr);
-        }
-        if (show_dot) {
-            size_t len = strlen(argv[1]);
-            char* fname_dot = malloc((len+5) * sizeof(char));
-            strcpy(fname_dot, argv[1]);
-            strcpy(fname_dot+len, ".dot");
-            FILE* fdot = fopen(fname_dot, "w");
-            pp_dot(fdot, repr);
-            fclose(fdot);
-            printf("%s\n", fname_dot);
-            char* cmd = malloc((len*2 + 50) * sizeof(char));
-            sprintf(cmd, "dot -Tpng %s.dot -o %s.png", argv[1], argv[1]);
-            printf("$ %s\n", cmd);
-            system(cmd);
-            free(fname_dot);
-            free(cmd);
-        }
-        if (exec_rand) {
+        if (args->show_repr) pp_repr(stdout, !args->nocolor, repr);
+        if (args->show_dot) make_dot(argv[1], repr);
+        if (args->exec_rand) {
             sat_t sat = exec_prog_random(repr);
             free(sat);
         }
-        if (exec_all) {
+        if (args->exec_all) {
             sat_t sat = exec_prog_all(repr);
             free(sat);
         }
@@ -227,5 +228,6 @@ int main (int argc, char **argv) {
         fclose(yyin);
         yylex_destroy();
     }
+    free(args);
     free_ident();
 }

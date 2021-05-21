@@ -1,6 +1,7 @@
 #include "printer.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 bool use_color;
 FILE* fout;
@@ -381,7 +382,11 @@ void pp_rcheck (rcheck_t* check) {
 
 
 // Dot-readable
-// Not meant to be pretty, this is for internal use only
+// The internal representation is basically a graph,
+// it seems appropriate to use Graphviz to render it.
+// The text dump is not meant to be pretty, text formatting
+// would distract from formatting directives for the actual
+// dot output
 
 void dot_rprog (rprog_t* prog);
 void dot_rvar (var_t* var);
@@ -392,10 +397,34 @@ void dot_rassign (rassign_t* assign);
 void dot_rguard (uint parent_id, uint idx, rguard_t* guard);
 void dot_rstep (rstep_t* step);
 
-void pp_dot (FILE* f, rprog_t* prog) {
-    fout = f;
+void pp_dot (FILE* fdest, rprog_t* prog) {
+    fout = fdest;
     use_color = false;
     dot_rprog(prog);
+}
+
+void make_dot (char* fname_src, rprog_t* prog) {
+    // assemble filenames
+    size_t len = strlen(fname_src);
+    char* fname_dot = malloc((len+5) * sizeof(char));
+    char* fname_png = malloc((len+5) * sizeof(char));
+    strcpy(fname_dot, fname_src);
+    strcpy(fname_png, fname_src);
+    strcpy(fname_dot + len, ".dot");
+    strcpy(fname_png + len, ".png");
+    // dump data
+    FILE* fdot = fopen(fname_dot, "w");
+    pp_dot(fdot, prog);
+    fclose(fdot);
+    // execute dot
+    printf("%s -> %s\n", fname_dot, fname_png);
+    char* cmd = malloc((len*2 + 50) * sizeof(char));
+    sprintf(cmd, "dot -Tpng %s -o %s", fname_dot, fname_png);
+    system(cmd);
+    // cleanup
+    free(fname_dot);
+    free(fname_png);
+    free(cmd);
 }
 
 void dot_rprog (rprog_t* prog) {
@@ -405,37 +434,42 @@ void dot_rprog (rprog_t* prog) {
     fprintf(fout, "node [fontname=\"Mono\"]\n");
     fprintf(fout, "graph [fontname=\"Mono\"]\n");
     fprintf(fout, "edge [fontname=\"Mono\"]\n");
-    for (uint i = 0; i < prog->nbglob; i++) {
-        dot_rvar(prog->globs+i);
-    }
-    for (uint i = 1; i < prog->nbglob; i++) {
-        fprintf(fout, "{ var_%d -> var_%d [style=invis] }\n",
-            prog->globs[i-1].id, prog->globs[i].id);
-    }
-    {
-        // phantom global variables for spacing
-        fprintf(fout, "{ var_%d -> var_x%d [style=invis] }\n",
-            prog->globs[prog->nbglob-1].id, prog->nbglob);
-        fprintf(fout, "{ var_x%d [label=\"\" style=invis] }\n",
-            prog->nbglob);
-        for (uint i = prog->nbglob+1; i < 5; i++) {
-            fprintf(fout, "{ var_x%d -> var_x%d [style=invis] }\n", i-1, i);
-            fprintf(fout, "{ var_x%d [label=\"\" style=invis] }\n", i);
+    { // VARIABLES
+        for (uint i = 0; i < prog->nbglob; i++) {
+            dot_rvar(prog->globs+i);
+        }
+        for (uint i = 1; i < prog->nbglob; i++) {
+            fprintf(fout, "{ var_%d -> var_%d [style=invis] }\n",
+                prog->globs[i-1].id, prog->globs[i].id);
+        }
+        { // phantom global variables for spacing
+            fprintf(fout, "{ var_%d -> var_x%d [style=invis] }\n",
+                prog->globs[prog->nbglob-1].id, prog->nbglob);
+            fprintf(fout, "{ var_x%d [label=\"\" style=invis] }\n",
+                prog->nbglob);
+            for (uint i = prog->nbglob+1; i < 5; i++) {
+                fprintf(fout, "{ var_x%d -> var_x%d [style=invis] }\n", i-1, i);
+                fprintf(fout, "{ var_x%d [label=\"\" style=invis] }\n", i);
+            }
         }
     }
-    for (uint i = 0; i < prog->nbproc; i++) {
-        dot_rproc(prog->procs+i);
+    { // PROCS
+        for (uint i = 0; i < prog->nbproc; i++) {
+            dot_rproc(prog->procs+i);
+        }
     }
-    for (uint i = 0; i < prog->nbcheck; i++) {
-        dot_rcheck(prog->checks+i, i);
-    }
-    for (uint i = 1; i < prog->nbcheck; i++) {
-        fprintf(fout, "{ check_%d -> check_%d [style=invis] }\n", i-1, i);
-    }
-    for (uint i = prog->nbcheck; i < 5; i++) {
-        // phantom checks for spacing
-        fprintf(fout, "{ check_%d [style=invis label=\"\"] }\n", i);
-        fprintf(fout, "{ check_%d -> check_%d [style=invis] }\n", i-1, i);
+    { // CHECKS
+        for (uint i = 0; i < prog->nbcheck; i++) {
+            dot_rcheck(prog->checks+i, i);
+        }
+        for (uint i = 1; i < prog->nbcheck; i++) {
+            fprintf(fout, "{ check_%d -> check_%d [style=invis] }\n", i-1, i);
+        }
+        for (uint i = prog->nbcheck; i < 5; i++) {
+            // phantom checks for spacing
+            fprintf(fout, "{ check_%d [style=invis label=\"\"] }\n", i);
+            fprintf(fout, "{ check_%d -> check_%d [style=invis] }\n", i-1, i);
+        }
     }
     fprintf(fout, "}\n");
     free(explored_steps);
