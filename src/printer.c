@@ -40,22 +40,22 @@ const char* str_of_expr_e (expr_e e) {
     }
 }
 
-void pp_prog (prog_t* prog);
-void pp_proc (proc_t* proc);
-void pp_branch (uint indent, branch_t* branch);
-void pp_stmt (uint indent, stmt_t* stmt);
-void pp_assign (assign_t* assign);
-void pp_expr (expr_t* expr);
-void pp_var (uint indent, var_t* var, bool isglob);
-void pp_check (check_t* check);
+void pp_prog (Prog* prog);
+void pp_proc (Proc* proc);
+void pp_branch (uint indent, Branch* branch);
+void pp_stmt (uint indent, Stmt* stmt);
+void pp_assign (Assign* assign);
+void pp_expr (Expr* expr);
+void pp_var (uint indent, Var* var, bool isglob);
+void pp_check (Check* check);
 
-void pp_ast (FILE* f, bool color, prog_t* prog) {
+void pp_ast (FILE* f, bool color, Prog* prog) {
     fout = f;
     use_color = color;
     pp_prog(prog);
 }
 
-void pp_prog (prog_t* prog) {
+void pp_prog (Prog* prog) {
     fprintf(fout, "%s================= AST ==================%s\n", BLUE, RESET);
     pp_var(0, prog->globs, true);
     pp_proc(prog->procs);
@@ -63,7 +63,7 @@ void pp_prog (prog_t* prog) {
     fprintf(fout, "%s========================================%s\n\n", BLUE, RESET);
 }
 
-void pp_proc (proc_t* proc) {
+void pp_proc (Proc* proc) {
     if (proc) {
         pp_indent(0);
         fprintf(fout, "%sPROC {%s} %s{\n", PURPLE, proc->name, RESET);
@@ -75,7 +75,7 @@ void pp_proc (proc_t* proc) {
     }
 }
 
-void pp_branch (uint indent, branch_t* branch) {
+void pp_branch (uint indent, Branch* branch) {
     if (branch) {
         pp_indent(indent);
         if (branch->cond) {
@@ -90,7 +90,7 @@ void pp_branch (uint indent, branch_t* branch) {
     }
 }
 
-void pp_stmt (uint indent, stmt_t* stmt) {
+void pp_stmt (uint indent, Stmt* stmt) {
     if (stmt) {
         pp_indent(indent);
         fprintf(fout, "%s<%d> %s", BLACK, stmt->id, RESET);
@@ -123,13 +123,13 @@ void pp_stmt (uint indent, stmt_t* stmt) {
     }
 }
 
-void pp_assign (assign_t* assign) {
+void pp_assign (Assign* assign) {
     fprintf(fout, "SET %s[%s]%s <- ", RED, assign->target, RESET);
     pp_expr(assign->value);
     fprintf(fout, "\n");
 }
 
-void pp_expr (expr_t* expr) {
+void pp_expr (Expr* expr) {
     switch (expr->type) {
         case E_VAR:
             fprintf(fout, "%s(%s%s%s)%s", GREEN, RED, expr->val.ident, GREEN, RESET);
@@ -161,7 +161,7 @@ void pp_expr (expr_t* expr) {
     }
 }
 
-void pp_var (uint indent, var_t* var, bool isglob) {
+void pp_var (uint indent, Var* var, bool isglob) {
     if (var) {
         pp_indent(indent);
         fprintf(
@@ -173,7 +173,7 @@ void pp_var (uint indent, var_t* var, bool isglob) {
     }
 }
 
-void pp_check (check_t* check) {
+void pp_check (Check* check) {
     if (check) {
         pp_indent(0);
         fprintf(fout, "%sREACH? ", PURPLE);
@@ -193,22 +193,22 @@ void pp_check (check_t* check) {
 //      it is detected thanks to the below variable
 bool* explored_steps;
 
-void pp_rprog (rprog_t* prog);
-void pp_rproc (rproc_t* proc);
-void pp_rstep (uint indent, rstep_t* step);
-void pp_rguard (uint indent, rguard_t* guard);
-void pp_rassign (rassign_t* assign);
-void pp_rexpr (rexpr_t* expr);
-void pp_rvar (uint indent, var_t* var);
-void pp_rcheck (rcheck_t* check);
+void pp_rprog (RProg* prog);
+void pp_rproc (RProc* proc);
+void pp_rstep (uint indent, RStep* step);
+void pp_rguard (uint indent, RGuard* guard);
+void pp_rassign (RAssign* assign);
+void pp_rexpr (RExpr* expr);
+void pp_rvar (uint indent, Var* var);
+void pp_rcheck (RCheck* check);
 
-void pp_repr (FILE* f, bool color, rprog_t* prog) {
+void pp_repr (FILE* f, bool color, RProg* prog) {
     fout = f;
     use_color = color;
     pp_rprog(prog);
 }
 
-void pp_rprog (rprog_t* prog) {
+void pp_rprog (RProg* prog) {
     explored_steps = malloc(prog->nbstep * sizeof(bool));
     for (uint i = 0; i < prog->nbstep; i++) { explored_steps[i] = false; }
     fprintf(fout, "%s================= REPR =================%s\n", BLUE, RESET);
@@ -226,7 +226,7 @@ void pp_rprog (rprog_t* prog) {
     free(explored_steps);
 }
 
-void pp_rproc (rproc_t* proc) {
+void pp_rproc (RProc* proc) {
     pp_indent(0);
     fprintf(fout, "%sthread '%s' %sentrypoint [%d]%s", PURPLE, proc->name, RED, proc->entrypoint->id, RESET);
     for (uint i = 0; i < proc->nbloc; i++) {
@@ -239,7 +239,7 @@ void pp_rproc (rproc_t* proc) {
     fprintf(fout, "%send%s\n", PURPLE, RESET);
 }
 
-void pp_rstep (uint indent, rstep_t* step) {
+void pp_rstep (uint indent, RStep* step) {
     if (explored_steps[step->id]) {
         fprintf(fout, "\n");
         pp_indent(indent);
@@ -314,7 +314,7 @@ void pp_rstep (uint indent, rstep_t* step) {
     }
 }
 
-void pp_rguard (uint indent, rguard_t* guard) {
+void pp_rguard (uint indent, RGuard* guard) {
     fprintf(fout, "\n");
     pp_indent(indent);
     fprintf(fout, "%swhen %s", PURPLE, GREEN);
@@ -322,13 +322,13 @@ void pp_rguard (uint indent, rguard_t* guard) {
     fprintf(fout, " %sjump [%d]%s", RED, guard->next->id, RESET);
 }
 
-void pp_rassign (rassign_t* assign) {
+void pp_rassign (RAssign* assign) {
     fprintf(fout, "%s{%d as '%s'}%s <- %s", CYAN, assign->target->id, assign->target->name, RESET, GREEN);
     pp_rexpr(assign->expr);
     fprintf(fout, "%s", RESET);
 }
 
-void pp_rexpr (rexpr_t* expr) {
+void pp_rexpr (RExpr* expr) {
     switch (expr->type) {
         case E_VAR:
             fprintf(fout, "%s{%d as '%s'}%s", CYAN, expr->val.var->id, expr->val.var->name, GREEN);
@@ -360,12 +360,12 @@ void pp_rexpr (rexpr_t* expr) {
     }
 }
 
-void pp_rvar (uint indent, var_t* var) {
+void pp_rvar (uint indent, Var* var) {
     pp_indent(indent);
     fprintf(fout, "%sref %s{%d as '%s'}%s", PURPLE, CYAN, var->id, var->name, RESET);
 }
 
-void pp_rcheck (rcheck_t* check) {
+void pp_rcheck (RCheck* check) {
     pp_indent(0);
     fprintf(fout, "%sreach? %s", PURPLE, GREEN);
     pp_rexpr(check->cond);
@@ -380,22 +380,22 @@ void pp_rcheck (rcheck_t* check) {
 // would distract from formatting directives for the actual
 // dot output
 
-void dot_rprog (rprog_t* prog);
-void dot_rvar (var_t* var);
-void dot_rcheck (rcheck_t* check, uint id);
-void dot_rexpr (rexpr_t* expr);
-void dot_rproc (rproc_t* proc);
-void dot_rassign (rassign_t* assign);
-void dot_rguard (uint parent_id, uint idx, rguard_t* guard);
-void dot_rstep (rstep_t* step);
+void dot_rprog (RProg* prog);
+void dot_rvar (Var* var);
+void dot_rcheck (RCheck* check, uint id);
+void dot_rexpr (RExpr* expr);
+void dot_rproc (RProc* proc);
+void dot_rassign (RAssign* assign);
+void dot_rguard (uint parent_id, uint idx, RGuard* guard);
+void dot_rstep (RStep* step);
 
-void pp_dot (FILE* fdest, rprog_t* prog) {
+void pp_dot (FILE* fdest, RProg* prog) {
     fout = fdest;
     use_color = false;
     dot_rprog(prog);
 }
 
-void make_dot (char* fname_src, rprog_t* prog) {
+void make_dot (char* fname_src, RProg* prog) {
     // assemble filenames
     size_t len = strlen(fname_src);
     char* fname_dot = malloc((len+5) * sizeof(char));
@@ -419,7 +419,7 @@ void make_dot (char* fname_src, rprog_t* prog) {
     free(cmd);
 }
 
-void dot_rprog (rprog_t* prog) {
+void dot_rprog (RProg* prog) {
     explored_steps = malloc(prog->nbstep * sizeof(bool));
     for (uint i = 0; i < prog->nbstep; i++) explored_steps[i] = false;
     fprintf(fout, "digraph {\n");
@@ -467,20 +467,20 @@ void dot_rprog (rprog_t* prog) {
     free(explored_steps);
 }
 
-void dot_rvar (var_t* var) {
+void dot_rvar (Var* var) {
     fprintf(
         fout,
         "{ var_%d [label=\"%s\" shape=box style=\"filled\" fillcolor=orange] }\n",
         var->id, var->name);
 }
 
-void dot_rcheck (rcheck_t* check, uint id) {
+void dot_rcheck (RCheck* check, uint id) {
     fprintf(fout, "{ check_%d [label=\"", id);
     dot_rexpr(check->cond);
     fprintf(fout, "\" shape=diamond style=\"filled\" fillcolor=yellow] }\n");
 }
 
-void dot_rexpr (rexpr_t* expr) {
+void dot_rexpr (RExpr* expr) {
     switch (expr->type) {
         case E_VAR:
             fprintf(fout, "%s", expr->val.var->name);
@@ -524,7 +524,7 @@ void dot_rexpr (rexpr_t* expr) {
     }
 }
 
-void dot_rproc (rproc_t* proc) {
+void dot_rproc (RProc* proc) {
     fprintf(
         fout,
         "{ thread_%s [label=\"%s\" shape=invhouse style=\"filled\" fillcolor=blue] }\n",
@@ -542,7 +542,7 @@ void dot_rproc (rproc_t* proc) {
     dot_rstep(proc->entrypoint);
 }
 
-void dot_rstep (rstep_t* step) {
+void dot_rstep (RStep* step) {
     if (explored_steps[step->id]) return;
     explored_steps[step->id] = true;
     if (step->assign) {
@@ -580,31 +580,31 @@ void dot_rstep (rstep_t* step) {
     }
 }
 
-void dot_rassign (rassign_t* assign) {
+void dot_rassign (RAssign* assign) {
     fprintf(fout, "%s := ", assign->target->name);
     dot_rexpr(assign->expr);
 }
 
-void dot_rguard (uint parent_id, uint idx, rguard_t* guard) {
+void dot_rguard (uint parent_id, uint idx, RGuard* guard) {
     fprintf(fout, "{ guard_%d_%d [label=\"", parent_id, idx);
     dot_rexpr(guard->cond);
     fprintf(fout, "\" shape=diamond style=\"filled\" fillcolor=yellow] }\n");
     fprintf(fout, "guard_%d_%d -> step_%d\n", parent_id, idx, guard->next->id);
 }
 
-void pp_diff (rprog_t* prog, diff_t* curr, env_t env);
+void pp_diff (RProg* prog, Diff* curr, Env env);
 
 // Print reachability trace (i.e. walk back the chain of diffs)
-void pp_sat (rprog_t* prog, sat_t* sat, bool color, bool trace) {
+void pp_sat (RProg* prog, Sat* sat, bool color, bool trace) {
     fout = stdout;
     use_color = false;
     for (uint i = 0; i < prog->nbcheck; i++) {
         printf(" [%d] ", i+1);
-        rcheck_t* check = prog->checks + i;
+        RCheck* check = prog->checks + i;
         pp_rexpr(check->cond);
         if (sat[i]) {
             printf(" is reachable\n");
-            env_t env = blank_env(prog);
+            Env env = blank_env(prog);
             pp_diff(prog, sat[i], env);
             free(env);
         } else {
@@ -613,14 +613,14 @@ void pp_sat (rprog_t* prog, sat_t* sat, bool color, bool trace) {
     }
 }
 
-void pp_env (rprog_t* prog, env_t env) {
+void pp_env (RProg* prog, Env env) {
     printf("Global ");
     for (uint i = 0; i < prog->nbglob; i++) {
         printf("%s=%d ", prog->globs[i].name, env[prog->globs[i].id]);
     }
     printf("\n");
     for (uint p = 0; p < prog->nbproc; p++) {
-        rproc_t* proc = prog->procs + p;
+        RProc* proc = prog->procs + p;
         printf("Local %s ", proc->name);
         for (uint i = 0; i < proc->nbloc; i++) {
             printf("%s=%d ", proc->locs[i].name, env[proc->locs[i].id]);
@@ -629,7 +629,7 @@ void pp_env (rprog_t* prog, env_t env) {
     }
 }
 
-void pp_diff (rprog_t* prog, diff_t* curr, env_t env) {
+void pp_diff (RProg* prog, Diff* curr, Env env) {
     if (curr->parent) {
         pp_diff(prog, curr->parent, env);
         printf("Advance thread %s", prog->procs[curr->pid_advance].name);

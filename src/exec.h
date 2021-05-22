@@ -4,40 +4,40 @@
 #include <stdbool.h>
 #include "repr.h"
 
-typedef int* env_t;
-typedef rstep_t** state_t;
+typedef int* Env;
+typedef RStep** State;
 
-struct compute;
-struct diff;
-typedef struct diff* sat_t;
+struct Compute;
+struct Diff;
+typedef struct Diff* Sat;
 // NULL if not satisfied, otherwise pointer
 // to a computation state that satisfies
 // the condition
 
 // A state of the computation
-typedef struct compute {
-    env_t env; // assignment for each variable
-    state_t state; // step for each process
-    sat_t* sat; // satisfied checks
-    rprog_t* prog;
-    struct diff* diff; // which state this was forked from
-} compute_t;
+typedef struct Compute {
+    Env env; // assignment for each variable
+    State state; // step for each process
+    Sat* sat; // satisfied checks
+    RProg* prog;
+    struct Diff* diff; // which state this was forked from
+} Compute;
 
-typedef struct diff {
-    struct diff* parent;
+typedef struct Diff {
+    struct Diff* parent;
     uint pid_advance;
-    rstep_t* new_step;
-    var_t* var_assign;
+    RStep* new_step;
+    Var* var_assign;
     int val_assign;
-} diff_t;
+} Diff;
 
-compute_t* dup_compute (compute_t* comp);
-void free_compute (compute_t* comp);
+Compute* dup_compute (Compute* comp);
+void free_compute (Compute* comp);
 
-env_t blank_env (rprog_t* prog);
+Env blank_env (RProg* prog);
 
-sat_t* exec_prog_random (rprog_t* prog);
-sat_t* exec_prog_all (rprog_t* prog);
+Sat* exec_prog_random (RProg* prog);
+Sat* exec_prog_all (RProg* prog);
 void free_sat ();
 
 #endif // EXEC_H

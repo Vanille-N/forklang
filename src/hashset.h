@@ -7,36 +7,36 @@
 
 typedef unsigned long long ull;
 
-typedef struct record {
-    compute_t* data;
+typedef struct Record {
+    Compute* data;
     ull hash;
-    struct record* next;
-} record_t;
+    struct Record* next;
+} Record;
 
 typedef struct {
     uint size;
-    record_t** records;
+    Record** records;
 #if HASHSET_SHOW_STATS
     uint collisions;
     uint nb_elem;
 #endif // HASHSET_SHOW_STATS
-} hashset_t;
+} HashSet;
 
-ull hash (compute_t* item);
-bool equals (compute_t* lhs, compute_t* rhs);
+ull hash (Compute* item);
+bool equals (Compute* lhs, Compute* rhs);
 
-hashset_t* create_hashset (uint size);
-void free_hashset (hashset_t* set);
-void insert (hashset_t* set, compute_t* item, ull hashed);
-bool query (hashset_t* set, compute_t* item, ull hashed);
-bool try_insert (hashset_t* set, compute_t* item);
+HashSet* create_hashset (uint size);
+void free_hashset (HashSet* set);
+void insert (HashSet* set, Compute* item, ull hashed);
+bool query (HashSet* set, Compute* item, ull hashed);
+bool try_insert (HashSet* set, Compute* item);
 
 typedef struct {
-    record_t* head;
-} worklist_t;
+    Record* head;
+} WorkList;
 
-worklist_t* create_worklist ();
-compute_t* dequeue (worklist_t* todo);
-void enqueue (worklist_t* todo, compute_t* item);
+WorkList* create_worklist ();
+Compute* dequeue (WorkList* todo);
+void enqueue (WorkList* todo, Compute* item);
 
 #endif // HASHSET_H

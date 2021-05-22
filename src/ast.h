@@ -7,48 +7,48 @@ typedef unsigned int uint;
 void free_ast ();
 void free_var ();
 
-struct expr;
-struct stmt;
+struct Expr;
+struct Stmt;
 
 // a variable
-typedef struct var {
+typedef struct Var {
     char* name;
-    struct var* next;
+    struct Var* next;
     uint id;
-} var_t;
+} Var;
 
 // a nondeterministic choice
-typedef struct branch {
-    struct expr* cond;
-    struct stmt* stmt;
-    struct branch* next;
-} branch_t;
+typedef struct Branch {
+    struct Expr* cond;
+    struct Stmt* stmt;
+    struct Branch* next;
+} Branch;
 
 // an assignment statement
 typedef struct {
     char* target;
-    struct expr* value;
-} assign_t;
+    struct Expr* value;
+} Assign;
 
 // a statement
 typedef enum { S_IF, S_DO, S_ASSIGN, S_BREAK, S_SKIP } stmt_e;
 typedef union {
-    branch_t* branch;
-    assign_t* assign;
+    Branch* branch;
+    Assign* assign;
     int _;
 } stmt_u;
-typedef struct stmt {
+typedef struct Stmt {
     stmt_e type;
     stmt_u val;
-    struct stmt* next;
+    struct Stmt* next;
     uint id;
-} stmt_t;
+} Stmt;
 
 // a binary operation
 typedef struct {
-    struct expr* lhs;
-    struct expr* rhs;
-} binop_t;
+    struct Expr* lhs;
+    struct Expr* rhs;
+} Binop;
 
 // an expression
 typedef enum {
@@ -59,55 +59,55 @@ typedef enum {
 } expr_e;
 typedef union {
     char* ident;
-    struct expr* subexpr;
-    binop_t* binop;
+    struct Expr* subexpr;
+    Binop* binop;
     uint digit;
 } expr_u;
-typedef struct expr {
+typedef struct Expr {
     expr_e type;
     expr_u val;
-} expr_t;
+} Expr;
 
 // a procedure
-typedef struct proc {
+typedef struct Proc {
     char* name;
-    var_t* locs; // local variables
-    stmt_t* stmts;
-    struct proc* next;
-} proc_t;
+    Var* locs; // local variables
+    Stmt* stmts;
+    struct Proc* next;
+} Proc;
 
 // a reachability test
-typedef struct check {
-    expr_t* cond;
-    struct check* next;
-} check_t;
+typedef struct Check {
+    Expr* cond;
+    struct Check* next;
+} Check;
 
 // a program
 typedef struct {
-    var_t* globs;
-    proc_t* procs;
-    check_t* checks;
+    Var* globs;
+    Proc* procs;
+    Check* checks;
     uint nbvar;
     uint nbglob;
     uint nbstmt;
-} prog_t;
+} Prog;
 
 // Builders
-var_t* make_ident (char* s, uint id);
-prog_t* make_prog (var_t* v, proc_t* p, check_t* c);
-assign_t* make_assign (char* s, expr_t* e);
-branch_t* make_branch (expr_t* cond, stmt_t* stmt);
-stmt_u assign_as_s (assign_t* assign);
-stmt_u branch_as_s (branch_t* branch);
+Var* make_ident (char* s, uint id);
+Prog* make_prog (Var* v, Proc* p, Check* c);
+Assign* make_assign (char* s, Expr* e);
+Branch* make_branch (Expr* cond, Stmt* stmt);
+stmt_u assign_as_s (Assign* assign);
+stmt_u branch_as_s (Branch* branch);
 stmt_u null_as_s ();
-stmt_t* make_stmt (stmt_e type, stmt_u val, uint id);
-proc_t* make_proc (char* name, var_t* vars, stmt_t* stmts);
+Stmt* make_stmt (stmt_e type, stmt_u val, uint id);
+Proc* make_proc (char* name, Var* vars, Stmt* stmts);
 expr_u uint_as_e (unsigned i);
-expr_u expr_as_e (expr_t* expr);
-binop_t* make_binop (expr_t* lhs, expr_t* rhs);
-expr_u binop_as_e (binop_t* binop);
+expr_u expr_as_e (Expr* expr);
+Binop* make_binop (Expr* lhs, Expr* rhs);
+expr_u binop_as_e (Binop* binop);
 expr_u str_as_e (char* ident);
-expr_t* make_expr (expr_e type, expr_u val);
-check_t* make_check (expr_t* cond);
+Expr* make_expr (expr_e type, expr_u val);
+Check* make_check (Expr* cond);
 
 #endif // AST_H

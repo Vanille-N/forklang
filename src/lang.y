@@ -23,7 +23,7 @@ void yyerror (const char *s) {
 /***************************************************************************/
 /* All output data available here */
 
-prog_t* program;
+Prog* program;
 
 // Helper variables to assign unique identifiers to variables and statements
 uint unique_var_id;
@@ -42,12 +42,12 @@ uint unique_stmt_id;
 %union {
 	char* ident;
     uint digit;
-	var_t* var;
-    proc_t* proc;
-    check_t* check;
-    stmt_t* stmt;
-    expr_t* expr;
-    branch_t* branch;
+	Var* var;
+    Proc* proc;
+    Check* check;
+    Stmt* stmt;
+    Expr* expr;
+    Branch* branch;
     expr_e bin;
 }
 
@@ -80,7 +80,7 @@ uint unique_stmt_id;
 
 %%
 
-prog : decls procs checks {
+prog : decls procs checks YYEOF {
         program = make_prog($1, $2, $3);
         program->nbvar = unique_var_id;
         program->nbstmt = unique_stmt_id;
@@ -140,8 +140,7 @@ expr : INT { $$ = make_expr(E_VAL, uint_as_e($1)); }
      ;
 
 
-checks : reach YYEOF { $$ = $1; }
-       | reach checks { ($$ = $1)->next = $2; }
+checks : reach checks { ($$ = $1)->next = $2; }
        | { $$ = NULL; }
        ;
 
@@ -163,10 +162,10 @@ enum {
 typedef struct {
     char* fname_src;
     uint flags;
-} args_t;
+} Args;
 
-args_t* parse_args (int argc, char** argv) {
-    args_t* args = malloc(sizeof(args_t));
+Args* parse_args (int argc, char** argv) {
+    Args* args = malloc(sizeof(Args));
     if (argc <= 1) {
         yyerror("No file specified");
         exit(1);
@@ -204,7 +203,7 @@ args_t* parse_args (int argc, char** argv) {
 
 
 int main (int argc, char **argv) {
-    args_t* args = parse_args(argc, argv);
+    Args* args = parse_args(argc, argv);
 	if (!(yyin = fopen(args->fname_src, "r"))) {
         fprintf(stderr, "File not found '%s'\n", args->fname_src);
         exit(2);
@@ -214,19 +213,19 @@ int main (int argc, char **argv) {
     unique_stmt_id = 0;
 	if (!yyparse()) {
         if (args->flags&SHOW_AST) pp_ast(stdout, !(args->flags&NO_COLOR), program);
-        rprog_t* repr = tr_prog(program);
+        RProg* repr = tr_prog(program);
         free_ast();
         fclose(yyin);
         yylex_destroy();
         if (args->flags&SHOW_REPR) pp_repr(stdout, !(args->flags&NO_COLOR), repr);
         if (args->flags&SHOW_DOT) make_dot(argv[1], repr);
         if (args->flags&EXEC_RAND) {
-            sat_t* sat = exec_prog_random(repr);
+            Sat* sat = exec_prog_random(repr);
             pp_sat(repr, sat, !(args->flags&NO_COLOR), args->flags&SHOW_TRACE);
             free_sat();
         }
         if (args->flags&EXEC_ALL) {
-            sat_t* sat = exec_prog_all(repr);
+            Sat* sat = exec_prog_all(repr);
             pp_sat(repr, sat, !(args->flags&NO_COLOR), args->flags&SHOW_TRACE);
             free_sat();
         }

@@ -6,7 +6,7 @@
 %{
 
 #include "memreg.h"
-memblock_t* ident_alloc_registry = NULL;
+MemBlock* ident_alloc_registry = NULL;
 void register_ident (void* ptr) { register_alloc(&ident_alloc_registry, ptr); }
 void free_ident () { register_free(&ident_alloc_registry); }
 

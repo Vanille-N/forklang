@@ -4,9 +4,9 @@
 
 const uint MBLOCK_SIZE = 100;
 
-void register_alloc (memblock_t** registry, void* ptr) {
+void register_alloc (MemBlock** registry, void* ptr) {
     if (!(*registry) || ((*registry) && (*registry)->len == MBLOCK_SIZE)) {
-        memblock_t* newblock = malloc(sizeof(memblock_t));
+        MemBlock* newblock = malloc(sizeof(MemBlock));
         newblock->next = *registry;
         newblock->len = 0;
         newblock->block = malloc(MBLOCK_SIZE * sizeof(void*));
@@ -15,9 +15,9 @@ void register_alloc (memblock_t** registry, void* ptr) {
     (*registry)->block[(*registry)->len++] = ptr;
 }
 
-void register_free (memblock_t** registry) {
+void register_free (MemBlock** registry) {
     while (*registry) {
-        memblock_t* tmp = *registry;
+        MemBlock* tmp = *registry;
         *registry = tmp->next;
         for (uint i = 0; i < tmp->len; i++) free(tmp->block[i]);
         free(tmp->block);

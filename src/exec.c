@@ -6,28 +6,28 @@
 #include "hashset.h"
 #include "memreg.h"
 
-memblock_t* sat_alloc_registry = NULL;
+MemBlock* sat_alloc_registry = NULL;
 void register_sat (void* ptr) { register_alloc(&sat_alloc_registry, ptr); }
 void free_sat () { register_free(&sat_alloc_registry); }
 
-env_t blank_env (rprog_t* prog) {
-    env_t env = malloc(prog->nbvar * sizeof(int));
+Env blank_env (RProg* prog) {
+    Env env = malloc(prog->nbvar * sizeof(int));
     for (uint i = 0; i < prog->nbvar; i++) {
         env[i] = 0;
     }
     return env;
 }
 
-state_t init_state (rprog_t* prog) {
-    state_t state = malloc(prog->nbproc * sizeof(rstep_t*));
+State init_state (RProg* prog) {
+    State state = malloc(prog->nbproc * sizeof(RStep*));
     for (uint i = 0; i < prog->nbproc; i++) {
         state[i] = prog->procs[i].entrypoint;
     }
     return state;
 }
 
-diff_t* make_diff (diff_t* parent) {
-    diff_t* diff = malloc(sizeof(diff_t));
+Diff* make_diff (Diff* parent) {
+    Diff* diff = malloc(sizeof(Diff));
     register_sat(diff);
     diff->parent = parent;
     diff->pid_advance = (uint)(-1);
@@ -37,8 +37,8 @@ diff_t* make_diff (diff_t* parent) {
     return diff;
 }
 
-diff_t* dup_diff (diff_t* src) {
-    diff_t* cpy = malloc(sizeof(diff_t));
+Diff* dup_diff (Diff* src) {
+    Diff* cpy = malloc(sizeof(Diff));
     register_sat(cpy);
     cpy->parent = src->parent;
     cpy->pid_advance = src->pid_advance;
@@ -49,8 +49,8 @@ diff_t* dup_diff (diff_t* src) {
 }
 
 // duplicate a computation to avoid side effects
-compute_t* dup_compute (compute_t* comp) {
-    compute_t* cpy = malloc(sizeof(compute_t));
+Compute* dup_compute (Compute* comp) {
+    Compute* cpy = malloc(sizeof(Compute));
     // copy by reference so that sat is updated
     cpy->sat = comp->sat;
     cpy->prog = comp->prog;
@@ -58,19 +58,19 @@ compute_t* dup_compute (compute_t* comp) {
     // copy by value so that environment is not modified
     cpy->env = malloc(comp->prog->nbvar * sizeof(int));
     for (uint i = 0; i < comp->prog->nbvar; i++) { cpy->env[i] = comp->env[i]; }
-    cpy->state = malloc(comp->prog->nbproc * sizeof(rstep_t));
+    cpy->state = malloc(comp->prog->nbproc * sizeof(RStep));
     for (uint i = 0; i < comp->prog->nbproc; i++) { cpy->state[i] = comp->state[i]; }
     return cpy;
 }
 
-void free_compute (compute_t* comp) {
+void free_compute (Compute* comp) {
     free(comp->env);
     free(comp->state);
     free(comp);
 }
 
-sat_t* blank_sat (rprog_t* prog) {
-    sat_t* sat = malloc(prog->nbcheck * sizeof(compute_t*));
+Sat* blank_sat (RProg* prog) {
+    Sat* sat = malloc(prog->nbcheck * sizeof(Compute*));
     register_sat(sat);
     for (uint i = 0; i < prog->nbcheck; i++) {
         sat[i] = NULL;
@@ -92,7 +92,7 @@ sat_t* blank_sat (rprog_t* prog) {
 #define MONOP(o) case o: return MONOP_##o val
 
 // straightforward expression evaluation
-int eval_expr (rexpr_t* expr, env_t env) {
+int eval_expr (RExpr* expr, Env env) {
     fflush(stdout);
     switch (expr->type) {
         case E_VAR: return env[expr->val.var->id];
@@ -130,7 +130,7 @@ int eval_expr (rexpr_t* expr, env_t env) {
     }
 }
 
-void exec_assign (rassign_t* assign, env_t env, diff_t* diff) {
+void exec_assign (RAssign* assign, Env env, Diff* diff) {
     env[assign->target->id] = eval_expr(assign->expr, env);
     diff->var_assign = assign->target;
     diff->val_assign = env[assign->target->id];
@@ -139,7 +139,7 @@ void exec_assign (rassign_t* assign, env_t env, diff_t* diff) {
 // Randomly choose a successor of a determined computation step
 // and update the environment
 // Returns the new state
-rstep_t* exec_step_random (rstep_t* step, env_t env, diff_t* diff) {
+RStep* exec_step_random (RStep* step, Env env, Diff* diff) {
     if (!step) return step; // NULL, blocked
     if (step->assign) {
         exec_assign(step->assign, env, diff);
@@ -167,8 +167,8 @@ rstep_t* exec_step_random (rstep_t* step, env_t env, diff_t* diff) {
 }
 
 // Randomly execute a program (many times)
-sat_t* exec_prog_random (rprog_t* prog) {
-    compute_t comp;
+Sat* exec_prog_random (RProg* prog) {
+    Compute comp;
     comp.sat = blank_sat(prog);
     comp.prog = prog;
     for (uint j = 0; j < 100; j++) {
@@ -206,23 +206,23 @@ sat_t* exec_prog_random (rprog_t* prog) {
 }
 
 // Explore (i.e. add to the worklist with their updated environment) all successors of a state
-void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t* comp) {
-    rstep_t* step = comp->state[pid];
+void exec_step_all_proc (HashSet* seen, WorkList* todo, uint pid, Compute* comp) {
+    RStep* step = comp->state[pid];
     if (!step) return; // NULL, blocked
-    diff_t* diff = make_diff(comp->diff);
+    Diff* diff = make_diff(comp->diff);
     diff->pid_advance = pid;
     if (step->assign) {
         exec_assign(step->assign, comp->env, diff);
     }
     // find all satisfied guards
-    rstep_t* satisfied [step->nbguarded];
+    RStep* satisfied [step->nbguarded];
     uint nbsat = 0;
     for (uint i = 0; i < step->nbguarded; i++) {
         if (0 != eval_expr(step->guarded[i].cond, comp->env)) {
             satisfied[nbsat++] = step->guarded[i].next;
         }
     }
-    rstep_t** successors;
+    RStep** successors;
     uint nbsucc;
     if (step->nbguarded == 0) {
         // unconditional advancement
@@ -254,18 +254,18 @@ void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t*
     }
 }
 
-sat_t* exec_prog_all (rprog_t* prog) {
-    sat_t* sat = blank_sat(prog);
+Sat* exec_prog_all (RProg* prog) {
+    Sat* sat = blank_sat(prog);
     // setup computation state
-    compute_t* comp = malloc(sizeof(compute_t));
+    Compute* comp = malloc(sizeof(Compute));
     comp->sat = sat;
     comp->prog = prog;
     comp->env = blank_env(prog);
     comp->state = init_state(prog);
     comp->diff = make_diff(NULL);
     // explored records
-    hashset_t* seen = create_hashset(200);
-    worklist_t* todo = create_worklist();
+    HashSet* seen = create_hashset(200);
+    WorkList* todo = create_worklist();
     insert(seen, comp, hash(comp));
     enqueue(todo, comp);
     free_compute(comp);
@@ -279,7 +279,7 @@ sat_t* exec_prog_all (rprog_t* prog) {
         }
         // advance all processes in parallel
         for (uint k = 0; k < prog->nbproc; k++) {
-            compute_t* tmp = dup_compute(comp);
+            Compute* tmp = dup_compute(comp);
             exec_step_all_proc(seen, todo, k, tmp);
             free_compute(tmp);
         }

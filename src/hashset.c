@@ -10,7 +10,7 @@ const ull INIT = 42;
 
 // Hashes on more that the capacity for fewer
 // structural comparisons
-ull hash (compute_t* item) {
+ull hash (Compute* item) {
     ull h = INIT;
     for (uint i = 0; i < item->prog->nbvar; i++) {
         h = ((h + (ull)item->env[i]) * MUL + ADD) % MOD;
@@ -24,7 +24,7 @@ ull hash (compute_t* item) {
 }
 
 // In the rare event that two computations have the same hash
-bool equals (compute_t* lhs, compute_t* rhs) {
+bool equals (Compute* lhs, Compute* rhs) {
     for (uint i = 0; i < lhs->prog->nbvar; i++) {
         if (lhs->env[i] != rhs->env[i]) return false;
     }
@@ -35,10 +35,10 @@ bool equals (compute_t* lhs, compute_t* rhs) {
 }
 
 // Allocate set buffer and fill with NULL
-hashset_t* create_hashset (uint size) {
-    hashset_t* set = malloc(sizeof(hashset_t));
+HashSet* create_hashset (uint size) {
+    HashSet* set = malloc(sizeof(HashSet));
     set->size = size;
-    set->records = malloc(size * sizeof(record_t*));
+    set->records = malloc(size * sizeof(Record*));
     for (uint i = 0; i < size; i++) {
         set->records[i] = NULL;
     }
@@ -49,16 +49,16 @@ hashset_t* create_hashset (uint size) {
     return set;
 }
 
-void free_record (record_t* rec) {
+void free_record (Record* rec) {
     while (rec) {
-        record_t* tmp = rec;
+        Record* tmp = rec;
         rec = rec->next;
         free_compute(tmp->data);
         free(tmp);
     }
 }
 
-void free_hashset (hashset_t* set) {
+void free_hashset (HashSet* set) {
 #if HASHSET_SHOW_STATS
     printf("Hashset deallocated\n");
     printf(" | %d elements\n", set->nb_elem);
@@ -67,7 +67,7 @@ void free_hashset (hashset_t* set) {
     int histogram [maxhist + 1];
     for (uint i = 0; i <= maxhist; i++) histogram[i] = 0;
     for (uint i = 0; i < set->size; i++) {
-        record_t* cur = set->records[i];
+        Record* cur = set->records[i];
         uint nb = 0;
         while (cur) { nb++; cur = cur->next; }
         histogram[nb]++;
@@ -87,9 +87,9 @@ void free_hashset (hashset_t* set) {
 }
 
 // Insert regardless of presence
-void insert (hashset_t* set, compute_t* item, ull hashed) {
+void insert (HashSet* set, Compute* item, ull hashed) {
     uint idx = (uint)(hashed % set->size);
-    record_t* rec = malloc(sizeof(record_t));
+    Record* rec = malloc(sizeof(Record));
     rec->data = dup_compute(item);
     rec->hash = hashed;
     rec->next = set->records[idx];
@@ -100,9 +100,9 @@ void insert (hashset_t* set, compute_t* item, ull hashed) {
 }
 
 // Check for presence in set
-bool query (hashset_t* set, compute_t* item, ull hashed) {
+bool query (HashSet* set, Compute* item, ull hashed) {
     uint idx = (uint)(hashed % set->size);
-    record_t* rec = set->records[idx];
+    Record* rec = set->records[idx];
     while (rec) {
         if (rec->hash == hashed) {
             if (equals(rec->data, item)) {
@@ -119,7 +119,7 @@ bool query (hashset_t* set, compute_t* item, ull hashed) {
 }
 
 // Insert and return true iff absent
-bool try_insert (hashset_t* set, compute_t* item) {
+bool try_insert (HashSet* set, Compute* item) {
     ull hashed = hash(item);
     if (!query(set, item, hashed)) {
         insert(set, item, hashed);
@@ -129,24 +129,24 @@ bool try_insert (hashset_t* set, compute_t* item) {
     }
 }
 
-worklist_t* create_worklist () {
-    worklist_t* queue = malloc(sizeof(worklist_t));
+WorkList* create_worklist () {
+    WorkList* queue = malloc(sizeof(WorkList));
     queue->head = NULL;
     return queue;
 }
 
-void enqueue (worklist_t* todo, compute_t* item) {
-    record_t* rec = malloc(sizeof(record_t));
+void enqueue (WorkList* todo, Compute* item) {
+    Record* rec = malloc(sizeof(Record));
     rec->data = dup_compute(item);
     rec->hash = 0;
     rec->next = todo->head;
     todo->head = rec;
 }
 
-compute_t* dequeue (worklist_t* todo) {
-    record_t* tmp = todo->head;
+Compute* dequeue (WorkList* todo) {
+    Record* tmp = todo->head;
     if (tmp) {
-        compute_t* res = tmp->data;
+        Compute* res = tmp->data;
         todo->head = tmp->next;
         free(tmp);
         return res;

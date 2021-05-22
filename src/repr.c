@@ -6,7 +6,7 @@
 
 #include "memreg.h"
 
-memblock_t* repr_alloc_registry = NULL;
+MemBlock* repr_alloc_registry = NULL;
 void register_repr (void* ptr) { register_alloc(&repr_alloc_registry, ptr); }
 void free_repr () { register_free(&repr_alloc_registry); }
 
@@ -26,12 +26,12 @@ void free_repr () { register_free(&repr_alloc_registry); }
 
 uint nbglob;
 uint nbloc;
-var_t* globs;
-var_t* locs;
+Var* globs;
+Var* locs;
 char* procname;
 
-rprog_t* tr_prog (prog_t* in) {
-    rprog_t* out = malloc(sizeof(rprog_t));
+RProg* tr_prog (Prog* in) {
+    RProg* out = malloc(sizeof(RProg));
     register_repr(out);
     out->nbstep = in->nbstmt;
     out->nbvar = in->nbvar;
@@ -45,16 +45,16 @@ rprog_t* tr_prog (prog_t* in) {
 }
 
 // List to array conversion
-uint tr_var_list (var_t** loc, var_t* in) {
+uint tr_var_list (Var** loc, Var* in) {
     {
         uint len = 0;
-        var_t* cur = in;
+        Var* cur = in;
         while (cur) { len++; cur = cur->next; }
-        *loc = malloc(len * sizeof(var_t));
+        *loc = malloc(len * sizeof(Var));
         register_repr(*loc);
     }
     uint n = 0;
-    var_t* cur = in;
+    Var* cur = in;
     while (cur) {
         (*loc)[n].name = cur->name;
         (*loc)[n].id = cur->id;
@@ -64,12 +64,12 @@ uint tr_var_list (var_t** loc, var_t* in) {
     return n;
 }
 
-uint tr_check_list (rcheck_t** loc, check_t* in) {
+uint tr_check_list (RCheck** loc, Check* in) {
     {
         uint len = 0;
-        check_t* cur = in;
+        Check* cur = in;
         while (cur) { len++; cur = cur->next; }
-        *loc = malloc(len * sizeof(check_t));
+        *loc = malloc(len * sizeof(Check));
         register_repr(*loc);
     }
     // no local variables during checks
@@ -78,7 +78,7 @@ uint tr_check_list (rcheck_t** loc, check_t* in) {
     procname = "reachability checks";
 
     uint n = 0;
-    check_t* cur = in;
+    Check* cur = in;
     while (cur) {
         (*loc)[n].cond = tr_expr(cur->cond);
         n++;
@@ -87,8 +87,8 @@ uint tr_check_list (rcheck_t** loc, check_t* in) {
     return n;
 }
 
-rexpr_t* tr_expr (expr_t* in) {
-    rexpr_t* out = malloc(sizeof(rexpr_t));
+RExpr* tr_expr (Expr* in) {
+    RExpr* out = malloc(sizeof(RExpr));
     register_repr(out);
     out->type = in->type;
     switch (in->type) {
@@ -105,7 +105,7 @@ rexpr_t* tr_expr (expr_t* in) {
         case E_OR:
         case E_ADD:
         case E_SUB:
-            out->val.binop = malloc(sizeof(rbinop_t));
+            out->val.binop = malloc(sizeof(RBinop));
             register_repr(out->val.binop);
             out->val.binop->lhs = tr_expr(in->val.binop->lhs);
             out->val.binop->rhs = tr_expr(in->val.binop->rhs);
@@ -119,7 +119,7 @@ rexpr_t* tr_expr (expr_t* in) {
     return out;
 }
 
-var_t* locate_var (char* ident) {
+Var* locate_var (char* ident) {
     for (uint i = 0; i < nbloc; i++) {
         if (0 == strcmp(ident, locs[i].name)) {
             return locs + i;
@@ -135,18 +135,18 @@ var_t* locate_var (char* ident) {
     exit(1);
 }
 
-uint tr_proc_list (rproc_t** loc, proc_t* in) {
+uint tr_proc_list (RProc** loc, Proc* in) {
     {
         uint len = 0;
-        proc_t* cur = in;
+        Proc* cur = in;
         while (cur) { len++; cur = cur->next; }
-        *loc = malloc(len * sizeof(rproc_t));
+        *loc = malloc(len * sizeof(RProc));
         register_repr(*loc);
     }
     uint n = 0;
-    proc_t* cur = in;
+    Proc* cur = in;
     while (cur) {
-        rproc_t* out = (*loc) + n;
+        RProc* out = (*loc) + n;
         out->name = cur->name;
         out->nbloc = tr_var_list(&out->locs, cur->locs);
         // setup local variables just for this translation
@@ -164,8 +164,8 @@ uint tr_proc_list (rproc_t** loc, proc_t* in) {
     return n;
 }
 
-rassign_t* tr_assign (assign_t* in) {
-    rassign_t* out = malloc(sizeof(rassign_t));
+RAssign* tr_assign (Assign* in) {
+    RAssign* out = malloc(sizeof(RAssign));
     register_repr(out);
     out->target = locate_var(in->target);
     out->expr = tr_expr(in->value);
@@ -173,10 +173,10 @@ rassign_t* tr_assign (assign_t* in) {
 }
 
 void tr_stmt (
-    rstep_t** out, stmt_t* in,
-    bool advance, rstep_t* skipto, rstep_t* breakto
+    RStep** out, Stmt* in,
+    bool advance, RStep* skipto, RStep* breakto
 ) {
-    *out = malloc(sizeof(rstep_t));
+    *out = malloc(sizeof(RStep));
     register_repr(*out);
     (*out)->assign = NULL;
     (*out)->id = in->id;
@@ -189,7 +189,7 @@ void tr_stmt (
             (*out)->nbguarded = 0;
             (*out)->guarded = NULL;
             if (in->next) {
-                (*out)->unguarded = malloc(sizeof(rstep_t));
+                (*out)->unguarded = malloc(sizeof(RStep));
                 register_repr((*out)->unguarded);
                 tr_stmt(
                     &((*out)->unguarded), in->next,
@@ -209,7 +209,7 @@ void tr_stmt (
             (*out)->nbguarded = 0;
             (*out)->advance = true;
             if (in->next) {
-                rstep_t* next = malloc(sizeof(rstep_t));
+                RStep* next = malloc(sizeof(RStep));
                 register_repr(next);
                 tr_stmt(
                     &next, in->next,
@@ -232,7 +232,7 @@ void tr_stmt (
             (*out)->nbguarded = 0;
             (*out)->advance = true;
             if (in->next) {
-                rstep_t* next = malloc(sizeof(rstep_t));
+                RStep* next = malloc(sizeof(RStep));
                 register_repr(next);
                 tr_stmt(
                     &next, in->next,
@@ -257,22 +257,22 @@ void tr_stmt (
 
 // Returns the possible else clause so that
 // the caller can set it as its unguarded branch
-rstep_t* tr_branch_list (
-    uint* nb, rguard_t** loc, branch_t* in,
-    bool advance, rstep_t* skipto, rstep_t* breakto
+RStep* tr_branch_list (
+    uint* nb, RGuard** loc, Branch* in,
+    bool advance, RStep* skipto, RStep* breakto
 ) {
     {
         uint len = 0;
-        branch_t* cur = in;
+        Branch* cur = in;
         while (cur && cur->cond) { len++; cur = cur->next; }
-        *loc = malloc(len * sizeof(rguard_t));
+        *loc = malloc(len * sizeof(RGuard));
         register_repr(*loc);
         *nb = len;
     }
     uint n = 0;
-    branch_t* cur = in;
+    Branch* cur = in;
     while (cur && cur->cond) {
-        rguard_t* out = *loc + n;
+        RGuard* out = *loc + n;
         out->cond = tr_expr(cur->cond);
         tr_stmt(
             &out->next, cur->stmt,
@@ -282,7 +282,7 @@ rstep_t* tr_branch_list (
     }
     // else clause
     if (cur) {
-        rstep_t* end = malloc(sizeof(rstep_t));
+        RStep* end = malloc(sizeof(RStep));
         register_repr(end);
         tr_stmt(
             &end, cur->stmt,

@@ -19,49 +19,49 @@ void free_repr ();
 // A different representation, more suited for execution
 // Not a tree but an execution graph
 
-struct rexpr;
-struct rstep;
-struct rguard;
+struct RExpr;
+struct RStep;
+struct RGuard;
 
 // a binary operation
 typedef struct {
-    struct rexpr* lhs;
-    struct rexpr* rhs;
-} rbinop_t;
+    struct RExpr* lhs;
+    struct RExpr* rhs;
+} RBinop;
 
 // an expression
 typedef union {
-    var_t* var;
+    Var* var;
     unsigned digit;
-    rbinop_t* binop;
-    struct rexpr* subexpr;
+    RBinop* binop;
+    struct RExpr* subexpr;
 } rexpr_u;
-typedef struct rexpr {
+typedef struct RExpr {
     expr_e type;
     rexpr_u val;
-} rexpr_t;
+} RExpr;
 
 // an assignment operation
 typedef struct {
-    var_t* target;
-    rexpr_t* expr;
-} rassign_t;
+    Var* target;
+    RExpr* expr;
+} RAssign;
 
 // represents a choice (possibly only one solution)
-typedef struct rstep {
+typedef struct RStep {
     bool advance; // avoid looping during pretty-print
-    rassign_t* assign; // maybe assign a new value
+    RAssign* assign; // maybe assign a new value
     unsigned nbguarded;
-    struct rguard* guarded; // choose any if satisfied
-    struct rstep* unguarded; // otherwise go here
+    struct RGuard* guarded; // choose any if satisfied
+    struct RStep* unguarded; // otherwise go here
     uint id;
-} rstep_t;
+} RStep;
 
 // represents a guarded instruction
-typedef struct rguard {
-    rexpr_t* cond;
-    rstep_t* next;
-} rguard_t; 
+typedef struct RGuard {
+    RExpr* cond;
+    RStep* next;
+} RGuard; 
 
 // The idea behind these two structures
 // is that each step of the computation consists of
@@ -76,39 +76,39 @@ typedef struct rguard {
 typedef struct {
     char* name;
     uint nbloc;
-    var_t* locs;
-    rstep_t* entrypoint;
-} rproc_t;
+    Var* locs;
+    RStep* entrypoint;
+} RProc;
 
 // a reachability test
 typedef struct {
-    rexpr_t* cond;
-} rcheck_t;
+    RExpr* cond;
+} RCheck;
 
 // a full program
 typedef struct {
     uint nbglob;
     uint nbvar;
-    var_t* globs;
+    Var* globs;
     uint nbproc;
-    rproc_t* procs;
+    RProc* procs;
     uint nbcheck;
-    rcheck_t* checks;
+    RCheck* checks;
     uint nbstep;
-} rprog_t;
+} RProg;
 
-rprog_t* tr_prog (prog_t* in);
-uint tr_var_list (var_t** loc, var_t* in);
-uint tr_check_list (rcheck_t** loc, check_t* in);
-rexpr_t* tr_expr (expr_t* in);
-var_t* locate_var (char* ident);
-uint tr_proc_list (rproc_t** loc, proc_t* in);
+RProg* tr_prog (Prog* in);
+uint tr_var_list (Var** loc, Var* in);
+uint tr_check_list (RCheck** loc, Check* in);
+RExpr* tr_expr (Expr* in);
+Var* locate_var (char* ident);
+uint tr_proc_list (RProc** loc, Proc* in);
 
 void tr_stmt (
-    rstep_t** out, stmt_t* in,
-    bool advance, rstep_t* skipto, rstep_t* breakto);
-rstep_t* tr_branch_list (
-    uint* nb, rguard_t** loc, branch_t* in,
-    bool advance, rstep_t* skipto, rstep_t* breakto);
+    RStep** out, Stmt* in,
+    bool advance, RStep* skipto, RStep* breakto);
+RStep* tr_branch_list (
+    uint* nb, RGuard** loc, Branch* in,
+    bool advance, RStep* skipto, RStep* breakto);
 
 #endif // REPR_H
