@@ -7,7 +7,6 @@
 #include "memreg.h"
 
 memblock_t* repr_alloc_registry = NULL;
-
 void register_repr (void* ptr) { register_alloc(&repr_alloc_registry, ptr); }
 void free_repr () { register_free(&repr_alloc_registry); }
 

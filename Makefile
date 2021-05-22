@@ -39,7 +39,7 @@ build:
 	mkdir -p build
 	cp src/* build/
 
-valgrind:
+valgrind: lang
 	@for f in assets/*.prog; do \
 		valgrind --track-origins=yes --leak-check=full --show-leak-kinds=all \
 			./lang $$f --all --rand \

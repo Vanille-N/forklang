@@ -4,6 +4,11 @@
 #include <stdio.h>
 
 #include "hashset.h"
+#include "memreg.h"
+
+memblock_t* sat_alloc_registry = NULL;
+void register_sat (void* ptr) { register_alloc(&sat_alloc_registry, ptr); }
+void free_sat () { register_free(&sat_alloc_registry); }
 
 env_t blank_env (rprog_t* prog) {
     env_t env = malloc(prog->nbvar * sizeof(int));
@@ -23,6 +28,7 @@ state_t init_state (rprog_t* prog) {
 
 diff_t* make_diff (diff_t* parent) {
     diff_t* diff = malloc(sizeof(diff_t));
+    register_sat(diff);
     diff->parent = parent;
     diff->pid_advance = (uint)(-1);
     diff->new_step = NULL;
@@ -33,6 +39,7 @@ diff_t* make_diff (diff_t* parent) {
 
 diff_t* dup_diff (diff_t* src) {
     diff_t* cpy = malloc(sizeof(diff_t));
+    register_sat(cpy);
     cpy->parent = src->parent;
     cpy->pid_advance = src->pid_advance;
     cpy->new_step = src->new_step;
@@ -64,11 +71,25 @@ void free_compute (compute_t* comp) {
 
 sat_t* blank_sat (rprog_t* prog) {
     sat_t* sat = malloc(prog->nbcheck * sizeof(compute_t*));
+    register_sat(sat);
     for (uint i = 0; i < prog->nbcheck; i++) {
         sat[i] = NULL;
     }
     return sat;
 }
+
+// black magic for operator expansion
+#define BINOP_E_LESS <
+#define BINOP_E_GREATER >
+#define BINOP_E_EQUAL ==
+#define BINOP_E_AND &&
+#define BINOP_E_OR ||
+#define BINOP_E_ADD +
+#define BINOP_E_SUB -
+#define MONOP_E_NOT !
+#define MONOP_E_NEG -
+#define BINOP(o) case o: return lhs BINOP_##o rhs
+#define MONOP(o) case o: return MONOP_##o val
 
 // straightforward expression evaluation
 int eval_expr (rexpr_t* expr, env_t env) {
@@ -86,23 +107,23 @@ int eval_expr (rexpr_t* expr, env_t env) {
             int lhs = eval_expr(expr->val.binop->lhs, env);
             int rhs = eval_expr(expr->val.binop->rhs, env);
             switch (expr->type) {
-                case E_LESS: return lhs < rhs;
-                case E_GREATER: return lhs > rhs;
-                case E_EQUAL: return lhs == rhs;
-                case E_AND: return lhs && rhs;
-                case E_OR: return lhs || rhs;
-                case E_ADD: return lhs + rhs;
-                case E_SUB: return lhs - rhs;
+                BINOP(E_LESS);
+                BINOP(E_GREATER);
+                BINOP(E_EQUAL);
+                BINOP(E_AND);
+                BINOP(E_OR);
+                BINOP(E_ADD);
+                BINOP(E_SUB);
                 default: UNREACHABLE();
             }
         }
         case E_NOT:
         case E_NEG: {
             int val = eval_expr(expr->val.subexpr, env);
-            if (expr->type == E_NOT) {
-                return !val;
-            } else {
-                return -val;
+            switch (expr->type) {
+                MONOP(E_NOT);
+                MONOP(E_NEG);
+                default: UNREACHABLE();
             }
         }
         default: UNREACHABLE();
@@ -175,7 +196,6 @@ sat_t* exec_prog_random (rprog_t* prog) {
             for (uint k = 0; k < prog->nbcheck; k++) {
                 if (!comp.sat[k] && 0 != eval_expr(prog->checks[k].cond, comp.env)) {
                     comp.sat[k] = comp.diff;
-                    printf("%d has been reached\n", k);
                 }
             }
         }
@@ -187,7 +207,6 @@ sat_t* exec_prog_random (rprog_t* prog) {
 
 // Explore (i.e. add to the worklist with their updated environment) all successors of a state
 void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t* comp) {
-    //printf("Advance %d\n", pid);
     rstep_t* step = comp->state[pid];
     if (!step) return; // NULL, blocked
     diff_t* diff = make_diff(comp->diff);
@@ -196,44 +215,41 @@ void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t*
         exec_assign(step->assign, comp->env, diff);
     }
     // find all satisfied guards
-    uint satisfied [step->nbguarded];
+    rstep_t* satisfied [step->nbguarded];
     uint nbsat = 0;
     for (uint i = 0; i < step->nbguarded; i++) {
         if (0 != eval_expr(step->guarded[i].cond, comp->env)) {
-            satisfied[nbsat++] = i;
+            satisfied[nbsat++] = step->guarded[i].next;
         }
     }
+    rstep_t** successors;
+    uint nbsucc;
     if (step->nbguarded == 0) {
         // unconditional advancement
-        // record if not already seen
-        comp->state[pid] = step->unguarded;
+        successors = &step->unguarded;
+        nbsucc = 1;
+    } else if (nbsat == 0) {
+        if (step->unguarded) {
+            // else clause
+            successors = &step->unguarded;
+            nbsucc = 1;
+        } else {
+            // blocked
+            nbsucc = 0;
+        }
+    } else {
+        // satisfied guards
+        successors = satisfied;
+        nbsucc = nbsat;
+    }
+    // enqueue all successors
+    for (uint i = 0; i < nbsucc; i++) {
+        comp->state[pid] = successors[i];
+        // record only if not already seen
         if (try_insert(seen, comp)) {
             comp->diff = dup_diff(diff);
             comp->diff->new_step = comp->state[pid];
             enqueue(todo, comp);
-        }
-    } else if (nbsat == 0) {
-        if (step->unguarded) {
-            // else clause
-            comp->state[pid] = step->unguarded;
-            if (try_insert(seen, comp)) {
-                comp->diff = dup_diff(diff);
-                comp->diff->new_step = comp->state[pid];
-                enqueue(todo, comp);
-            }
-        } else {
-            // blocked
-            // state is obviously already recorded
-        }
-    } else {
-        for (uint i = 0; i < nbsat; i++) {
-            // satisfied guards
-            comp->state[pid] = step->guarded[satisfied[i]].next;
-            if (try_insert(seen, comp)) {
-                comp->diff = dup_diff(diff);
-                comp->diff->new_step = comp->state[pid];
-                enqueue(todo, comp);
-            }
         }
     }
 }
@@ -253,12 +269,8 @@ sat_t* exec_prog_all (rprog_t* prog) {
     insert(seen, comp, hash(comp));
     enqueue(todo, comp);
     free_compute(comp);
-    //uint DBG = 0;
     while ((comp = dequeue(todo))) {
-        //printf("<<%d>>\n", DBG++);
-        //fflush(stdout);
         // loop as long as some configurations are unexplored
-        //pp_env(prog, comp->env);
         for (uint k = 0; k < prog->nbcheck; k++) {
             if (!comp->sat[k] && 0 != eval_expr(prog->checks[k].cond, comp->env)) {
                 comp->sat[k] = comp->diff;

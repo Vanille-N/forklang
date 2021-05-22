@@ -38,5 +38,6 @@ env_t blank_env (rprog_t* prog);
 
 sat_t* exec_prog_random (rprog_t* prog);
 sat_t* exec_prog_all (rprog_t* prog);
+void free_sat ();
 
 #endif // EXEC_H

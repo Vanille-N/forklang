@@ -29,7 +29,7 @@ const char* _ (enum color c) {
 }
 
 void pp_indent (uint num) {
-    fprintf(fout, "%s|%s", _(BLUE), _(RESET));
+    fprintf(fout, "%s||%s", _(BLUE), _(RESET));
     for (uint i = 0; i <= num; i++) {
         fprintf(fout, "  ");
     }
@@ -72,7 +72,7 @@ void pp_prog (prog_t* prog) {
     pp_var(0, prog->globs);
     pp_proc(prog->procs);
     pp_check(prog->checks);
-    fprintf(fout, "%s========================================%s\n", _(BLUE), _(RESET));
+    fprintf(fout, "%s========================================%s\n\n", _(BLUE), _(RESET));
 }
 
 void pp_proc (proc_t* proc) {
@@ -230,7 +230,7 @@ void pp_rprog (rprog_t* prog) {
     for (uint i = 0; i < prog->nbcheck; i++) {
         pp_rcheck(prog->checks+i);
     }
-    fprintf(fout, "%s========================================%s\n", _(BLUE), _(RESET));
+    fprintf(fout, "%s========================================%s\n\n", _(BLUE), _(RESET));
     free(explored_steps);
 }
 
@@ -640,8 +640,6 @@ void pp_env (rprog_t* prog, env_t env) {
 void pp_diff (rprog_t* prog, diff_t* curr, env_t env) {
     if (curr->parent) {
         pp_diff(prog, curr->parent, env);
-        printf("In environment\n");
-        pp_env(prog, env);
         printf("Advance thread %s", prog->procs[curr->pid_advance].name);
         if (curr->new_step) {
             printf(" to step %d\n", curr->new_step->id);
@@ -655,5 +653,9 @@ void pp_diff (rprog_t* prog, diff_t* curr, env_t env) {
                 curr->val_assign);
             env[curr->var_assign->id] = curr->val_assign;
         } 
+        printf("New environment\n");
+        pp_env(prog, env);
+    } else {
+        pp_env(prog, env);
     }
 }

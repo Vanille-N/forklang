@@ -11,12 +11,13 @@
 #include "repr.h"
 
 extern int yylineno;
+char* fname_src;
 
 int yylex ();
 
 void yyerror (const char *s) {
 	fflush(stdout);
-	fprintf(stderr, "%s\nat line %d", s, yylineno);
+	fprintf(stderr, "%s\nat %s:%d", s, fname_src, yylineno);
 }
 
 /***************************************************************************/
@@ -154,12 +155,16 @@ reach : REACH expr { $$ = make_check($2); }
 
 #include "lex.yy.c"
 
+enum {
+    SHOW_AST = 1, SHOW_REPR = 2, SHOW_DOT = 4,
+    EXEC_RAND = 8, EXEC_ALL = 16,
+    SHOW_TRACE = 32,
+    NO_COLOR = 64,
+};
+
 typedef struct {
     char* fname_src;
-    bool show_ast, show_repr, show_dot;
-    bool exec_rand, exec_all;
-    bool show_trace;
-    bool nocolor;
+    uint flags;
 } args_t;
 
 args_t* parse_args (int argc, char** argv) {
@@ -169,30 +174,29 @@ args_t* parse_args (int argc, char** argv) {
         exit(1);
     }
     args->fname_src = argv[1];
-    args->show_ast = args->show_repr = args->show_dot = false;
-    args->exec_rand = args->exec_all = false;
-    char* toggles [] = {
+    args->flags = 0;
+    char* flag_args [] = {
         "--ast", "--repr", "--dot",
         "--rand", "--all",
         "--trace",
         "--no-color",
         NULL,
     };
-    bool* targets [] = {
-        &args->show_ast, &args->show_repr, &args->show_dot,
-        &args->exec_rand, &args->exec_all,
-        &args->show_trace,
-        &args->nocolor,
+    uint flag_targets [] = {
+        SHOW_AST, SHOW_REPR, SHOW_DOT,
+        EXEC_RAND, EXEC_ALL,
+        SHOW_TRACE,
+        NO_COLOR,
     };
     for (int i = 2; i < argc; i++) {
         int j;
-        for (j = 0; toggles[j]; j++) {
-            if (0 == strcmp(toggles[j], argv[i])) {
-                *targets[j] = true;
+        for (j = 0; flag_args[j]; j++) {
+            if (0 == strcmp(flag_args[j], argv[i])) {
+                args->flags |= flag_targets[j];
                 break; 
             }
         }
-        if (!toggles[j]) {
+        if (!flag_args[j]) {
             fprintf(stderr, "No such option '%s'\n", argv[i]);
             exit(1);
         }    
@@ -207,25 +211,26 @@ int main (int argc, char **argv) {
         fprintf(stderr, "File not found '%s'\n", args->fname_src);
         exit(2);
     }
+    fname_src = args->fname_src;
     unique_var_id = 0;
     unique_stmt_id = 0;
 	if (!yyparse()) {
-        if (args->show_ast) pp_ast(stdout, !args->nocolor, program);
+        if (args->flags&SHOW_AST) pp_ast(stdout, !(args->flags&NO_COLOR), program);
         rprog_t* repr = tr_prog(program);
         free_ast();
         fclose(yyin);
         yylex_destroy();
-        if (args->show_repr) pp_repr(stdout, !args->nocolor, repr);
-        if (args->show_dot) make_dot(argv[1], repr);
-        if (args->exec_rand) {
+        if (args->flags&SHOW_REPR) pp_repr(stdout, !(args->flags&NO_COLOR), repr);
+        if (args->flags&SHOW_DOT) make_dot(argv[1], repr);
+        if (args->flags&EXEC_RAND) {
             sat_t* sat = exec_prog_random(repr);
-            if (args->show_trace) pp_sat(repr, sat);
-            free(sat);
+            if (args->flags&SHOW_TRACE) pp_sat(repr, sat);
+            free_sat();
         }
-        if (args->exec_all) {
+        if (args->flags&EXEC_ALL) {
             sat_t* sat = exec_prog_all(repr);
-            if (args->show_trace) pp_sat(repr, sat);
-            free(sat);
+            if (args->flags&SHOW_TRACE) pp_sat(repr, sat);
+            free_sat();
         }
         free_var();
         free_repr();
