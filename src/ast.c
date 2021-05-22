@@ -52,23 +52,9 @@ branch_t* make_branch (expr_t* cond, stmt_t* stmt) {
     return branch;
 }
 
-stmt_u assign_as_s (assign_t* assign) {
-    stmt_u val;
-    val.assign = assign;
-    return val;
-}
-
-stmt_u branch_as_s (branch_t* branch) {
-    stmt_u val;
-    val.branch = branch;
-    return val;
-}
-
-stmt_u null_as_s () {
-    stmt_u val;
-    val._ = 0;
-    return val;
-}
+stmt_u assign_as_s (assign_t* assign) { return (stmt_u){ .assign = assign }; }
+stmt_u branch_as_s (branch_t* branch) { return (stmt_u){ .branch = branch }; }
+stmt_u null_as_s () { return (stmt_u){ ._ = 0 }; }
 
 stmt_t* make_stmt (stmt_e type, stmt_u val, uint id) {
     stmt_t* stmt = malloc(sizeof(stmt_t));
@@ -90,17 +76,8 @@ proc_t* make_proc (char* name, var_t* locs, stmt_t* stmts) {
     return proc;
 }
 
-expr_u uint_as_e (unsigned i) {
-    expr_u val;
-    val.digit = i;
-    return val;
-}
-
-expr_u expr_as_e (expr_t* expr) {
-    expr_u val;
-    val.subexpr = expr;
-    return val;
-}
+expr_u uint_as_e (unsigned i) { return (expr_u){ .digit = i }; }
+expr_u expr_as_e (expr_t* expr) { return (expr_u){ .subexpr = expr }; }
 
 binop_t* make_binop (expr_t* lhs, expr_t* rhs) {
     binop_t* binop = malloc(sizeof(binop_t));
@@ -110,17 +87,8 @@ binop_t* make_binop (expr_t* lhs, expr_t* rhs) {
     return binop;
 }
 
-expr_u binop_as_e (binop_t* binop) {
-    expr_u val;
-    val.binop = binop;
-    return val;
-}
-
-expr_u str_as_e (char* ident) {
-    expr_u val;
-    val.ident = ident;
-    return val;
-}
+expr_u binop_as_e (binop_t* binop) { return (expr_u){ .binop = binop }; }
+expr_u str_as_e (char* ident) { return (expr_u){ .ident = ident }; }
 
 expr_t* make_expr (expr_e type, expr_u val) {
     expr_t* expr = malloc(sizeof(expr_t));
