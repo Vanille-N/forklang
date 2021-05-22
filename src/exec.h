@@ -24,15 +24,17 @@ typedef struct compute {
 } compute_t;
 
 typedef struct diff {
-    rprog_t* prog;
     struct diff* parent;
-    rproc_t* proc_advance;
+    uint pid_advance;
     rstep_t* new_step;
-    env_t* new_env;
+    var_t* var_assign;
+    int val_assign;
 } diff_t;
 
 compute_t* dup_compute (compute_t* comp);
 void free_compute (compute_t* comp);
+
+env_t blank_env (rprog_t* prog);
 
 sat_t* exec_prog_random (rprog_t* prog);
 sat_t* exec_prog_all (rprog_t* prog);

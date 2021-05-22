@@ -158,6 +158,7 @@ typedef struct {
     char* fname_src;
     bool show_ast, show_repr, show_dot;
     bool exec_rand, exec_all;
+    bool show_trace;
     bool nocolor;
 } args_t;
 
@@ -173,12 +174,14 @@ args_t* parse_args (int argc, char** argv) {
     char* toggles [] = {
         "--ast", "--repr", "--dot",
         "--rand", "--all",
+        "--trace",
         "--no-color",
         NULL,
     };
     bool* targets [] = {
         &args->show_ast, &args->show_repr, &args->show_dot,
         &args->exec_rand, &args->exec_all,
+        &args->show_trace,
         &args->nocolor,
     };
     for (int i = 2; i < argc; i++) {
@@ -216,10 +219,12 @@ int main (int argc, char **argv) {
         if (args->show_dot) make_dot(argv[1], repr);
         if (args->exec_rand) {
             sat_t* sat = exec_prog_random(repr);
+            if (args->show_trace) pp_sat(repr, sat);
             free(sat);
         }
         if (args->exec_all) {
             sat_t* sat = exec_prog_all(repr);
+            if (args->show_trace) pp_sat(repr, sat);
             free(sat);
         }
         free_var();

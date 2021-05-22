@@ -21,14 +21,34 @@ state_t init_state (rprog_t* prog) {
     return state;
 }
 
+diff_t* make_diff (diff_t* parent) {
+    diff_t* diff = malloc(sizeof(diff_t));
+    diff->parent = parent;
+    diff->pid_advance = (uint)(-1);
+    diff->new_step = NULL;
+    diff->var_assign = NULL;
+    diff->val_assign = 0;
+    return diff;
+}
+
+diff_t* dup_diff (diff_t* src) {
+    diff_t* cpy = malloc(sizeof(diff_t));
+    cpy->parent = src->parent;
+    cpy->pid_advance = src->pid_advance;
+    cpy->new_step = src->new_step;
+    cpy->var_assign = src->var_assign;
+    cpy->val_assign = src->val_assign;
+    return cpy;
+}
+
 // duplicate a computation to avoid side effects
 compute_t* dup_compute (compute_t* comp) {
     compute_t* cpy = malloc(sizeof(compute_t));
     // copy by reference so that sat is updated
     cpy->sat = comp->sat;
     cpy->prog = comp->prog;
-    cpy->diff = NULL;
-    // copy by value so that values are not changed
+    cpy->diff = comp->diff;
+    // copy by value so that environment is not modified
     cpy->env = malloc(comp->prog->nbvar * sizeof(int));
     for (uint i = 0; i < comp->prog->nbvar; i++) { cpy->env[i] = comp->env[i]; }
     cpy->state = malloc(comp->prog->nbproc * sizeof(rstep_t));
@@ -48,26 +68,6 @@ sat_t* blank_sat (rprog_t* prog) {
         sat[i] = NULL;
     }
     return sat;
-}
-
-void pp_env (rprog_t* prog, env_t env) {
-    for (uint i = 0; i < prog->nbvar; i++) {
-        printf("%d ", env[i]);
-    }
-    printf("\n");
-    printf("Global ");
-    for (uint i = 0; i < prog->nbglob; i++) {
-        printf("%s=%d ", prog->globs[i].name, env[prog->globs[i].id]);
-    }
-    printf("\n");
-    for (uint p = 0; p < prog->nbproc; p++) {
-        rproc_t* proc = prog->procs + p;
-        printf("Local %s ", proc->name);
-        for (uint i = 0; i < proc->nbloc; i++) {
-            printf("%s=%d ", proc->locs[i].name, env[proc->locs[i].id]);
-        }
-        printf("\n");
-    }
 }
 
 // straightforward expression evaluation
@@ -109,17 +109,19 @@ int eval_expr (rexpr_t* expr, env_t env) {
     }
 }
 
-void exec_assign (rassign_t* assign, env_t env) {
+void exec_assign (rassign_t* assign, env_t env, diff_t* diff) {
     env[assign->target->id] = eval_expr(assign->expr, env);
+    diff->var_assign = assign->target;
+    diff->val_assign = env[assign->target->id];
 }
 
 // Randomly choose a successor of a determined computation step
 // and update the environment
 // Returns the new state
-rstep_t* exec_step_random (rstep_t* step, env_t env) {
+rstep_t* exec_step_random (rstep_t* step, env_t env, diff_t* diff) {
     if (!step) return step; // NULL, blocked
     if (step->assign) {
-        exec_assign(step->assign, env);
+        exec_assign(step->assign, env, diff);
     }
     uint satisfied [step->nbguarded];
     uint nbsat = 0;
@@ -129,17 +131,18 @@ rstep_t* exec_step_random (rstep_t* step, env_t env) {
         }
     }
     if (step->nbguarded == 0) {
-        return step->unguarded; // unconditional advancement
+        diff->new_step = step->unguarded; // unconditional advancement
     } else if (nbsat == 0) {
         if (step->unguarded) {
-            return step->unguarded; // else clause
+            diff->new_step = step->unguarded; // else clause
         } else {
-            return step; // blocked
+            diff->new_step = step; // blocked
         }
     } else {
         int choice = rand() % (int)nbsat;
-        return step->guarded[satisfied[choice]].next; // satisfied guard
+        diff->new_step = step->guarded[satisfied[choice]].next; // satisfied guard
     }
+    return diff->new_step;
 }
 
 // Randomly execute a program (many times)
@@ -150,6 +153,7 @@ sat_t* exec_prog_random (rprog_t* prog) {
     for (uint j = 0; j < 100; j++) {
         comp.env = blank_env(prog); 
         comp.state = init_state(prog);
+        comp.diff = make_diff(NULL);
         //printf("RESTART\n");
         //pp_env(prog, comp.env);
         //printf("=======\n");
@@ -160,12 +164,17 @@ sat_t* exec_prog_random (rprog_t* prog) {
             // calculate next step of the computation
             //if (comp.state[choose_proc]) printf("  %d old state\n", comp.state[choose_proc]->id);
             //pp_env(prog, comp.env);
-            comp.state[choose_proc] = exec_step_random(comp.state[choose_proc], comp.env);
+            comp.diff = make_diff(comp.diff);
+            comp.diff->pid_advance = choose_proc;
+            comp.state[choose_proc] = exec_step_random(
+                comp.state[choose_proc],
+                comp.env,
+                comp.diff);
             //if (comp.state[choose_proc]) printf("  %d new state\n", comp.state[choose_proc]->id);
             // update reachability
             for (uint k = 0; k < prog->nbcheck; k++) {
                 if (!comp.sat[k] && 0 != eval_expr(prog->checks[k].cond, comp.env)) {
-                    comp.sat[k] = 1;
+                    comp.sat[k] = comp.diff;
                     printf("%d has been reached\n", k);
                 }
             }
@@ -181,8 +190,10 @@ void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t*
     //printf("Advance %d\n", pid);
     rstep_t* step = comp->state[pid];
     if (!step) return; // NULL, blocked
+    diff_t* diff = make_diff(comp->diff);
+    diff->pid_advance = pid;
     if (step->assign) {
-        exec_assign(step->assign, comp->env);
+        exec_assign(step->assign, comp->env, diff);
     }
     // find all satisfied guards
     uint satisfied [step->nbguarded];
@@ -197,6 +208,8 @@ void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t*
         // record if not already seen
         comp->state[pid] = step->unguarded;
         if (try_insert(seen, comp)) {
+            comp->diff = dup_diff(diff);
+            comp->diff->new_step = comp->state[pid];
             enqueue(todo, comp);
         }
     } else if (nbsat == 0) {
@@ -204,6 +217,8 @@ void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t*
             // else clause
             comp->state[pid] = step->unguarded;
             if (try_insert(seen, comp)) {
+                comp->diff = dup_diff(diff);
+                comp->diff->new_step = comp->state[pid];
                 enqueue(todo, comp);
             }
         } else {
@@ -215,6 +230,8 @@ void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t*
             // satisfied guards
             comp->state[pid] = step->guarded[satisfied[i]].next;
             if (try_insert(seen, comp)) {
+                comp->diff = dup_diff(diff);
+                comp->diff->new_step = comp->state[pid];
                 enqueue(todo, comp);
             }
         }
@@ -229,6 +246,7 @@ sat_t* exec_prog_all (rprog_t* prog) {
     comp->prog = prog;
     comp->env = blank_env(prog);
     comp->state = init_state(prog);
+    comp->diff = make_diff(NULL);
     // explored records
     hashset_t* seen = create_hashset(200);
     worklist_t* todo = create_worklist();
@@ -238,12 +256,12 @@ sat_t* exec_prog_all (rprog_t* prog) {
     //uint DBG = 0;
     while ((comp = dequeue(todo))) {
         //printf("<<%d>>\n", DBG++);
-        fflush(stdout);
+        //fflush(stdout);
         // loop as long as some configurations are unexplored
         //pp_env(prog, comp->env);
         for (uint k = 0; k < prog->nbcheck; k++) {
             if (!comp->sat[k] && 0 != eval_expr(prog->checks[k].cond, comp->env)) {
-                comp->sat[k] = 1;
+                comp->sat[k] = comp->diff;
                 printf("%d has been reached\n", k);
             }
         }
