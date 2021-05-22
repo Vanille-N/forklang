@@ -1,15 +1,17 @@
 #include "hashset.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
-const ull MOD = 412578559962553;
-const ull MUL = 7563254987;
-const ull ADD = 486651;
+const ull MOD = 0x10000000;
+const ull MUL = 1103515245;
+const ull ADD = 12345;
+const ull INIT = 42;
 
 // Hashes on more that the capacity for fewer
 // structural comparisons
 ull hash (compute_t* item) {
-    ull h = 0;
+    ull h = INIT;
     for (uint i = 0; i < item->prog->nbvar; i++) {
         h = ((h + (ull)item->env[i]) * MUL + ADD) % MOD;
     }
@@ -40,6 +42,10 @@ hashset_t* create_hashset (uint size) {
     for (uint i = 0; i < size; i++) {
         set->records[i] = NULL;
     }
+#if HASHSET_SHOW_STATS
+    set->collisions = 0;
+    set->nb_elem = 0;
+#endif // HASHSET_SHOW_STATS
     return set;
 }
 
@@ -53,6 +59,26 @@ void free_record (record_t* rec) {
 }
 
 void free_hashset (hashset_t* set) {
+#if HASHSET_SHOW_STATS
+    printf("Hashset deallocated\n");
+    printf(" | %d elements\n", set->nb_elem);
+    printf(" | %d hash collisions\n", set->collisions);
+    uint maxhist = (set->nb_elem > set->size) ? set->size : set->nb_elem;
+    int histogram [maxhist + 1];
+    for (uint i = 0; i <= maxhist; i++) histogram[i] = 0;
+    for (uint i = 0; i < set->size; i++) {
+        record_t* cur = set->records[i];
+        uint nb = 0;
+        while (cur) { nb++; cur = cur->next; }
+        histogram[nb]++;
+    }
+    printf(" | Histogram [size -> count]\n");
+    for (uint i = 0; i <= maxhist; i++) {
+        if (histogram[i]) {
+            printf(" |- %d -> %d\n", i, histogram[i]);
+        }
+    }
+#endif // HASHSET_SHOW_STATS
     for (uint i = 0; i < set->size; i++) {
         free_record(set->records[i]);
     }
@@ -68,6 +94,9 @@ void insert (hashset_t* set, compute_t* item, ull hashed) {
     rec->hash = hashed;
     rec->next = set->records[idx];
     set->records[idx] = rec;
+#if HASHSET_SHOW_STATS
+    set->nb_elem++;
+#endif // HASHSET_SHOW_STATS
 }
 
 // Check for presence in set
@@ -78,6 +107,10 @@ bool query (hashset_t* set, compute_t* item, ull hashed) {
         if (rec->hash == hashed) {
             if (equals(rec->data, item)) {
                 return true;
+            } else {
+#if HASHSET_SHOW_STATS
+                set->collisions++;
+#endif // HASHSET_SHOW_STATS
             }
         }
         rec = rec->next;

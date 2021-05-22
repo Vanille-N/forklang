@@ -3,6 +3,8 @@
 
 #include "exec.h"
 
+#define HASHSET_SHOW_STATS 0
+
 typedef unsigned long long ull;
 
 typedef struct record {
@@ -14,6 +16,10 @@ typedef struct record {
 typedef struct {
     uint size;
     record_t** records;
+#if HASHSET_SHOW_STATS
+    uint collisions;
+    uint nb_elem;
+#endif // HASHSET_SHOW_STATS
 } hashset_t;
 
 ull hash (compute_t* item);

@@ -229,7 +229,7 @@ sat_t exec_prog_all (rprog_t* prog) {
     comp->env = blank_env(prog);
     comp->state = init_state(prog);
     // explored records
-    hashset_t* seen = create_hashset(1000);
+    hashset_t* seen = create_hashset(200);
     worklist_t* todo = create_worklist();
     insert(seen, comp, hash(comp));
     enqueue(todo, comp);
