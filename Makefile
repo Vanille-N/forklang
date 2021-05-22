@@ -39,6 +39,19 @@ build:
 	mkdir -p build
 	cp src/* build/
 
+valgrind:
+	@for f in assets/*.prog; do \
+		valgrind --track-origins=yes --leak-check=full --show-leak-kinds=all \
+			./lang $$f --all --rand \
+			1>/dev/null 2>vg.report; \
+		if grep "no leaks are possible" vg.report &>/dev/null; then \
+			echo "With $$f: no leaks are possible"; \
+		else \
+			cat vg.report; \
+			exit 1; \
+		fi; \
+	done
+
 clean:
 	rm -rf build
 	rm -f $(BIN)
