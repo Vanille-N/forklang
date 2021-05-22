@@ -68,6 +68,7 @@ uint unique_stmt_id;
 %left SEQ
 %left COMMA
 
+// Use as logical operators (not bitwise) makes low priority appropriate
 %left OR
 %left AND
 
@@ -76,6 +77,7 @@ uint unique_stmt_id;
 %left ADD
 %left SUB
 
+// Negation affects only closest item
 %right NOT
 
 %%
@@ -218,7 +220,7 @@ int main (int argc, char **argv) {
         fclose(yyin);
         yylex_destroy();
         if (args->flags&SHOW_REPR) pp_repr(stdout, !(args->flags&NO_COLOR), repr);
-        if (args->flags&SHOW_DOT) make_dot(argv[1], repr);
+        if (args->flags&SHOW_DOT) make_dot(args->fname_src, repr);
         if (args->flags&EXEC_RAND) {
             Sat* sat = exec_prog_random(repr);
             pp_sat(repr, sat, !(args->flags&NO_COLOR), args->flags&SHOW_TRACE);

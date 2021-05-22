@@ -426,7 +426,7 @@ void dot_rprog (RProg* prog) {
     fprintf(fout, "node [fontname=\"Mono\"]\n");
     fprintf(fout, "graph [fontname=\"Mono\"]\n");
     fprintf(fout, "edge [fontname=\"Mono\"]\n");
-    { // VARIABLES
+    if (prog->nbglob) { // GLOBAL VARIABLES
         for (uint i = 0; i < prog->nbglob; i++) {
             dot_rvar(prog->globs+i);
         }
@@ -445,12 +445,12 @@ void dot_rprog (RProg* prog) {
             }
         }
     }
-    { // PROCS
+    if (prog->nbproc) { // PROCS
         for (uint i = 0; i < prog->nbproc; i++) {
             dot_rproc(prog->procs+i);
         }
     }
-    { // CHECKS
+    if (prog->nbcheck) { // CHECKS
         for (uint i = 0; i < prog->nbcheck; i++) {
             dot_rcheck(prog->checks+i, i);
         }
@@ -598,6 +598,7 @@ void pp_diff (RProg* prog, Diff* curr, Env env);
 void pp_sat (RProg* prog, Sat* sat, bool color, bool trace) {
     fout = stdout;
     use_color = false;
+    if (!prog->nbcheck) { printf("No checks declared\n"); }
     for (uint i = 0; i < prog->nbcheck; i++) {
         printf(" [%d] ", i+1);
         RCheck* check = prog->checks + i;
