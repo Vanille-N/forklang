@@ -6,5 +6,6 @@ lang
 report.bison
 .gdb_history
 vgcore.*
+vg.report
 *.png
-
+*.dot

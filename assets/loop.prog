@@ -1,0 +1,15 @@
+proc p
+    do
+    :: 1 -> 
+        do
+        :: 1 ->
+            if
+            :: 1 -> break
+            :: 1 -> skip
+            fi;
+            break
+        od;
+        break
+    od;
+    break
+end
