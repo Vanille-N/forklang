@@ -215,11 +215,11 @@ int main (int argc, char **argv) {
         if (args->show_repr) pp_repr(stdout, !args->nocolor, repr);
         if (args->show_dot) make_dot(argv[1], repr);
         if (args->exec_rand) {
-            sat_t sat = exec_prog_random(repr);
+            sat_t* sat = exec_prog_random(repr);
             free(sat);
         }
         if (args->exec_all) {
-            sat_t sat = exec_prog_all(repr);
+            sat_t* sat = exec_prog_all(repr);
             free(sat);
         }
         free_var();

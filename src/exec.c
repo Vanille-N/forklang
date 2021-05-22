@@ -27,6 +27,7 @@ compute_t* dup_compute (compute_t* comp) {
     // copy by reference so that sat is updated
     cpy->sat = comp->sat;
     cpy->prog = comp->prog;
+    cpy->diff = NULL;
     // copy by value so that values are not changed
     cpy->env = malloc(comp->prog->nbvar * sizeof(int));
     for (uint i = 0; i < comp->prog->nbvar; i++) { cpy->env[i] = comp->env[i]; }
@@ -41,10 +42,10 @@ void free_compute (compute_t* comp) {
     free(comp);
 }
 
-sat_t blank_sat (rprog_t* prog) {
-    sat_t sat = malloc(prog->nbcheck * sizeof(bool));
+sat_t* blank_sat (rprog_t* prog) {
+    sat_t* sat = malloc(prog->nbcheck * sizeof(compute_t*));
     for (uint i = 0; i < prog->nbcheck; i++) {
-        sat[i] = false;
+        sat[i] = NULL;
     }
     return sat;
 }
@@ -142,7 +143,7 @@ rstep_t* exec_step_random (rstep_t* step, env_t env) {
 }
 
 // Randomly execute a program (many times)
-sat_t exec_prog_random (rprog_t* prog) {
+sat_t* exec_prog_random (rprog_t* prog) {
     compute_t comp;
     comp.sat = blank_sat(prog);
     comp.prog = prog;
@@ -164,7 +165,7 @@ sat_t exec_prog_random (rprog_t* prog) {
             // update reachability
             for (uint k = 0; k < prog->nbcheck; k++) {
                 if (!comp.sat[k] && 0 != eval_expr(prog->checks[k].cond, comp.env)) {
-                    comp.sat[k] = true;
+                    comp.sat[k] = 1;
                     printf("%d has been reached\n", k);
                 }
             }
@@ -220,8 +221,8 @@ void exec_step_all_proc (hashset_t* seen, worklist_t* todo, uint pid, compute_t*
     }
 }
 
-sat_t exec_prog_all (rprog_t* prog) {
-    sat_t sat = blank_sat(prog);
+sat_t* exec_prog_all (rprog_t* prog) {
+    sat_t* sat = blank_sat(prog);
     // setup computation state
     compute_t* comp = malloc(sizeof(compute_t));
     comp->sat = sat;
@@ -242,7 +243,7 @@ sat_t exec_prog_all (rprog_t* prog) {
         //pp_env(prog, comp->env);
         for (uint k = 0; k < prog->nbcheck; k++) {
             if (!comp->sat[k] && 0 != eval_expr(prog->checks[k].cond, comp->env)) {
-                comp->sat[k] = true;
+                comp->sat[k] = 1;
                 printf("%d has been reached\n", k);
             }
         }
