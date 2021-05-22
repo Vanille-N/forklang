@@ -1,10 +1,6 @@
-var foo;
-
 proc p
     if
     :: 0 -> skip
     fi;
     break
 end
-
-reach 0

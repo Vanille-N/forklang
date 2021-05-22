@@ -51,7 +51,7 @@ uint unique_stmt_id;
     expr_e bin;
 }
 
-%type <var> vars glob_decls loc_decls
+%type <var> vars decls
 %type <proc> procs procdef
 %type <check> checks reach
 %type <stmt> stmts stmt
@@ -80,15 +80,16 @@ uint unique_stmt_id;
 
 %%
 
-prog : glob_decls procs checks {
+prog : decls procs checks {
         program = make_prog($1, $2, $3);
         program->nbvar = unique_var_id;
         program->nbstmt = unique_stmt_id;
      }
      ;
 
-glob_decls : DECL vars { $$ = $2; }
-           ;
+decls : DECL vars { $$ = $2; }
+      | { $$ = NULL; }
+      ;
 
 vars : IDENT SEQ { $$ = make_ident($1, unique_var_id++); }
      | IDENT COMMA vars { ($$ = make_ident($1, unique_var_id++))->next = $3; }
@@ -99,12 +100,8 @@ procs : procdef { $$ = $1; }
       | procdef procs { ($$ = $1)->next = $2; }
       ;
 
-procdef : PROC IDENT loc_decls stmts END { $$ = make_proc($2, $3, $4); }
+procdef : PROC IDENT decls stmts END { $$ = make_proc($2, $3, $4); }
         ;
-
-loc_decls : DECL vars { $$ = $2; }
-          | { $$ = NULL; }
-          ;
 
 stmts : stmt { $$ = $1; }
       | stmt SEQ stmts { ($$ = $1)->next = $3; }
@@ -145,6 +142,7 @@ expr : INT { $$ = make_expr(E_VAL, uint_as_e($1)); }
 
 checks : reach YYEOF { $$ = $1; }
        | reach checks { ($$ = $1)->next = $2; }
+       | { $$ = NULL; }
        ;
 
 reach : REACH expr { $$ = make_check($2); }

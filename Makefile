@@ -16,8 +16,6 @@ CDEP = $(COBJ:%.o=%.d)
 %.o: %.c
 	gcc -c -o $@ $(CFLAGS) -MD -MP -MF ${@:.o=.d} $<
 
-# don't fail on missing .d files
-# there won't be any on the first run
 -include $(CDEP)
 
 lang: $(COBJ) $(HCPY) build/lang.tab.c
@@ -55,7 +53,7 @@ valgrind: lang
 clean:
 	rm -rf build
 	rm -f $(BIN)
-	rm -f report.bison vgcore.*
+	rm -f report.bison vgcore.* vg.report
 	rm -f assets/*.png assets/*.dot
 
 .PHONY: clean

@@ -46,7 +46,7 @@ void pp_branch (uint indent, branch_t* branch);
 void pp_stmt (uint indent, stmt_t* stmt);
 void pp_assign (assign_t* assign);
 void pp_expr (expr_t* expr);
-void pp_var (uint indent, var_t* var);
+void pp_var (uint indent, var_t* var, bool isglob);
 void pp_check (check_t* check);
 
 void pp_ast (FILE* f, bool color, prog_t* prog) {
@@ -57,7 +57,7 @@ void pp_ast (FILE* f, bool color, prog_t* prog) {
 
 void pp_prog (prog_t* prog) {
     fprintf(fout, "%s================= AST ==================%s\n", BLUE, RESET);
-    pp_var(0, prog->globs);
+    pp_var(0, prog->globs, true);
     pp_proc(prog->procs);
     pp_check(prog->checks);
     fprintf(fout, "%s========================================%s\n\n", BLUE, RESET);
@@ -67,7 +67,7 @@ void pp_proc (proc_t* proc) {
     if (proc) {
         pp_indent(0);
         fprintf(fout, "%sPROC {%s} %s{\n", PURPLE, proc->name, RESET);
-        pp_var(1, proc->locs);
+        pp_var(1, proc->locs, false);
         pp_stmt(1, proc->stmts);
         pp_indent(0);
         fprintf(fout, "}\n");
@@ -161,11 +161,15 @@ void pp_expr (expr_t* expr) {
     }
 }
 
-void pp_var (uint indent, var_t* var) {
+void pp_var (uint indent, var_t* var, bool isglob) {
     if (var) {
         pp_indent(indent);
-        fprintf(fout, "%sVAR %s[%s]%s\n", PURPLE, RED, var->name, RESET);
-        pp_var(indent, var->next);
+        fprintf(
+            fout,
+            "%s%s %s[%s]%s\n",
+            PURPLE, isglob ? "GLOBAL" : "LOCAL",
+            RED, var->name, RESET);
+        pp_var(indent, var->next, isglob);
     }
 }
 
