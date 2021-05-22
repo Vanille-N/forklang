@@ -6,30 +6,18 @@
 bool use_color;
 FILE* fout;
 
-enum color {
-    RED, GREEN, BLUE, PURPLE, CYAN,
-    YELLOW, BLACK, RESET
-};
-const char* _ (enum color c) {
-    if (use_color) {
-        switch (c) {
-            case RED: return "\x1b[1;31m";
-            case GREEN: return "\x1b[0;32m";
-            case BLUE: return "\x1b[1;34m";
-            case PURPLE: return "\x1b[1;35m";
-            case CYAN: return "\x1b[1;36m";
-            case YELLOW: return "\x1b[1;33m";
-            case BLACK: return "\x1b[0;90m";
-            case RESET: return "\x1b[0m";
-            default: UNREACHABLE();
-        }
-    } else {
-        return "";
-    }
-}
+#define COLOR(c) use_color ? "\x1b[" #c "m" : ""
+#define RED COLOR(1;31)
+#define GREEN COLOR(0;32)
+#define BLUE COLOR(1;34)
+#define PURPLE COLOR(1;35)
+#define CYAN COLOR(1;36)
+#define YELLOW COLOR(1;33)
+#define BLACK COLOR(0;90)
+#define RESET COLOR(0)
 
 void pp_indent (uint num) {
-    fprintf(fout, "%s||%s", _(BLUE), _(RESET));
+    fprintf(fout, "%s||%s", BLUE, RESET);
     for (uint i = 0; i <= num; i++) {
         fprintf(fout, "  ");
     }
@@ -68,17 +56,17 @@ void pp_ast (FILE* f, bool color, prog_t* prog) {
 }
 
 void pp_prog (prog_t* prog) {
-    fprintf(fout, "%s================= AST ==================%s\n", _(BLUE), _(RESET));
+    fprintf(fout, "%s================= AST ==================%s\n", BLUE, RESET);
     pp_var(0, prog->globs);
     pp_proc(prog->procs);
     pp_check(prog->checks);
-    fprintf(fout, "%s========================================%s\n\n", _(BLUE), _(RESET));
+    fprintf(fout, "%s========================================%s\n\n", BLUE, RESET);
 }
 
 void pp_proc (proc_t* proc) {
     if (proc) {
         pp_indent(0);
-        fprintf(fout, "%sPROC {%s} %s{\n", _(PURPLE), proc->name, _(RESET));
+        fprintf(fout, "%sPROC {%s} %s{\n", PURPLE, proc->name, RESET);
         pp_var(1, proc->locs);
         pp_stmt(1, proc->stmts);
         pp_indent(0);
@@ -91,12 +79,12 @@ void pp_branch (uint indent, branch_t* branch) {
     if (branch) {
         pp_indent(indent);
         if (branch->cond) {
-            fprintf(fout, "%sWHEN ", _(CYAN));
+            fprintf(fout, "%sWHEN ", CYAN);
             pp_expr(branch->cond);
         } else {
-            fprintf(fout, "%sELSE", _(CYAN));
+            fprintf(fout, "%sELSE", CYAN);
         }
-        fprintf(fout, "\n%s", _(RESET));
+        fprintf(fout, "\n%s", RESET);
         pp_stmt(indent+1, branch->stmt);
         pp_branch(indent, branch->next);
     }
@@ -105,16 +93,16 @@ void pp_branch (uint indent, branch_t* branch) {
 void pp_stmt (uint indent, stmt_t* stmt) {
     if (stmt) {
         pp_indent(indent);
-        fprintf(fout, "%s<%d> %s", _(BLACK), stmt->id, _(RESET));
+        fprintf(fout, "%s<%d> %s", BLACK, stmt->id, RESET);
         switch (stmt->type) {
             case S_IF:
-                fprintf(fout, "%sCHOICE %s{\n", _(CYAN), _(RESET));
+                fprintf(fout, "%sCHOICE %s{\n", CYAN, RESET);
                 pp_branch(indent+1, stmt->val.branch);
                 pp_indent(indent);
                 fprintf(fout, "}\n");
                 break;
             case S_DO:
-                fprintf(fout, "%sLOOP %s{\n", _(CYAN), _(RESET));
+                fprintf(fout, "%sLOOP %s{\n", CYAN, RESET);
                 pp_branch(indent+1, stmt->val.branch);
                 pp_indent(indent);
                 fprintf(fout, "}\n");
@@ -123,10 +111,10 @@ void pp_stmt (uint indent, stmt_t* stmt) {
                 pp_assign(stmt->val.assign);
                 break;
             case S_BREAK:
-                fprintf(fout, "%sBREAK%s\n", _(CYAN), _(RESET));
+                fprintf(fout, "%sBREAK%s\n", CYAN, RESET);
                 break;
             case S_SKIP:
-                fprintf(fout, "%sSKIP%s\n", _(CYAN), _(RESET));
+                fprintf(fout, "%sSKIP%s\n", CYAN, RESET);
                 break;
             default:
                 UNREACHABLE();
@@ -136,7 +124,7 @@ void pp_stmt (uint indent, stmt_t* stmt) {
 }
 
 void pp_assign (assign_t* assign) {
-    fprintf(fout, "SET %s[%s]%s <- ", _(RED), assign->target, _(RESET));
+    fprintf(fout, "SET %s[%s]%s <- ", RED, assign->target, RESET);
     pp_expr(assign->value);
     fprintf(fout, "\n");
 }
@@ -144,10 +132,10 @@ void pp_assign (assign_t* assign) {
 void pp_expr (expr_t* expr) {
     switch (expr->type) {
         case E_VAR:
-            fprintf(fout, "%s(%s%s%s)%s", _(GREEN), _(RED), expr->val.ident, _(GREEN), _(RESET));
+            fprintf(fout, "%s(%s%s%s)%s", GREEN, RED, expr->val.ident, GREEN, RESET);
             break;
         case E_VAL:
-            fprintf(fout, "%s(%d)%s", _(GREEN), expr->val.digit, _(RESET));
+            fprintf(fout, "%s(%d)%s", GREEN, expr->val.digit, RESET);
             break;
         case E_LESS:
         case E_GREATER:
@@ -156,17 +144,17 @@ void pp_expr (expr_t* expr) {
         case E_OR:
         case E_ADD:
         case E_SUB:
-            fprintf(fout, "%s(%s%s ", _(GREEN), _(YELLOW), str_of_expr_e(expr->type));
+            fprintf(fout, "%s(%s%s ", GREEN, YELLOW, str_of_expr_e(expr->type));
             pp_expr(expr->val.binop->lhs);
             fprintf(fout, " ");
             pp_expr(expr->val.binop->rhs);
-            fprintf(fout, "%s)%s", _(GREEN), _(RESET));
+            fprintf(fout, "%s)%s", GREEN, RESET);
             break;
         case E_NOT:
         case E_NEG:
-            fprintf(fout, "%s(%s%s ", _(GREEN), _(YELLOW), str_of_expr_e(expr->type));
+            fprintf(fout, "%s(%s%s ", GREEN, YELLOW, str_of_expr_e(expr->type));
             pp_expr(expr->val.subexpr);
-            fprintf(fout, "%s)%s", _(GREEN), _(RESET));
+            fprintf(fout, "%s)%s", GREEN, RESET);
             break;
         default:
             UNREACHABLE();
@@ -176,7 +164,7 @@ void pp_expr (expr_t* expr) {
 void pp_var (uint indent, var_t* var) {
     if (var) {
         pp_indent(indent);
-        fprintf(fout, "%sVAR %s[%s]%s\n", _(PURPLE), _(RED), var->name, _(RESET));
+        fprintf(fout, "%sVAR %s[%s]%s\n", PURPLE, RED, var->name, RESET);
         pp_var(indent, var->next);
     }
 }
@@ -184,7 +172,7 @@ void pp_var (uint indent, var_t* var) {
 void pp_check (check_t* check) {
     if (check) {
         pp_indent(0);
-        fprintf(fout, "%sREACH? ", _(PURPLE));
+        fprintf(fout, "%sREACH? ", PURPLE);
         pp_expr(check->cond);
         fprintf(fout, "\n");
         pp_check(check->next);
@@ -219,7 +207,7 @@ void pp_repr (FILE* f, bool color, rprog_t* prog) {
 void pp_rprog (rprog_t* prog) {
     explored_steps = malloc(prog->nbstep * sizeof(bool));
     for (uint i = 0; i < prog->nbstep; i++) { explored_steps[i] = false; }
-    fprintf(fout, "%s================= REPR =================%s\n", _(BLUE), _(RESET));
+    fprintf(fout, "%s================= REPR =================%s\n", BLUE, RESET);
     for (uint i = 0; i < prog->nbglob; i++) {
         pp_rvar(0, prog->globs+i);
         fprintf(fout, "\n");
@@ -230,13 +218,13 @@ void pp_rprog (rprog_t* prog) {
     for (uint i = 0; i < prog->nbcheck; i++) {
         pp_rcheck(prog->checks+i);
     }
-    fprintf(fout, "%s========================================%s\n\n", _(BLUE), _(RESET));
+    fprintf(fout, "%s========================================%s\n\n", BLUE, RESET);
     free(explored_steps);
 }
 
 void pp_rproc (rproc_t* proc) {
     pp_indent(0);
-    fprintf(fout, "%sthread '%s' %sentrypoint [%d]%s", _(PURPLE), proc->name, _(RED), proc->entrypoint->id, _(RESET));
+    fprintf(fout, "%sthread '%s' %sentrypoint [%d]%s", PURPLE, proc->name, RED, proc->entrypoint->id, RESET);
     for (uint i = 0; i < proc->nbloc; i++) {
         fprintf(fout, "\n");
         pp_rvar(1, proc->locs+i);
@@ -244,26 +232,26 @@ void pp_rproc (rproc_t* proc) {
     pp_rstep(1, proc->entrypoint);
     fprintf(fout, "\n");
     pp_indent(0);
-    fprintf(fout, "%send%s\n", _(PURPLE), _(RESET));
+    fprintf(fout, "%send%s\n", PURPLE, RESET);
 }
 
 void pp_rstep (uint indent, rstep_t* step) {
     if (explored_steps[step->id]) {
         fprintf(fout, "\n");
         pp_indent(indent);
-        fprintf(fout, "%s<%d> %s(merge)%s", _(YELLOW), step->id, _(BLACK), _(RESET));
+        fprintf(fout, "%s<%d> %s(merge)%s", YELLOW, step->id, BLACK, RESET);
         return;
     }
     explored_steps[step->id] = true;
     if (step->assign) {
         fprintf(fout, "\n");
         pp_indent(indent);
-        fprintf(fout, "%s<%d> %s", _(YELLOW), step->id, _(RESET));
+        fprintf(fout, "%s<%d> %s", YELLOW, step->id, RESET);
         pp_rassign(step->assign);
         if (step->unguarded) {
-            fprintf(fout, " %sthen [%d]%s", _(RED), step->unguarded->id, _(RESET));
+            fprintf(fout, " %sthen [%d]%s", RED, step->unguarded->id, RESET);
         } else {
-            fprintf(fout, " %s<END>%s", _(BLACK), _(RESET));
+            fprintf(fout, " %s<END>%s", BLACK, RESET);
         }
         if (step->advance) {
             if (step->unguarded) {
@@ -271,53 +259,53 @@ void pp_rstep (uint indent, rstep_t* step) {
             } else {
                 fprintf(fout, "\n");
                 pp_indent(indent);
-                fprintf(fout, "%s<END>%s", _(BLACK), _(RESET));
+                fprintf(fout, "%s<END>%s", BLACK, RESET);
             }
         } else {
-            fprintf(fout, " %s(loop)%s", _(BLACK), _(RESET));
+            fprintf(fout, " %s(loop)%s", BLACK, RESET);
         }
     } else if (step->nbguarded > 0) {
         fprintf(fout, "\n");
         pp_indent(indent);
-        fprintf(fout, "%s<%d> %s%d guarded", _(YELLOW), step->id, _(BLACK), step->nbguarded);
+        fprintf(fout, "%s<%d> %s%d guarded", YELLOW, step->id, BLACK, step->nbguarded);
         if (step->unguarded) { fprintf(fout, ", default"); }
-        fprintf(fout, "%s", _(RESET));
+        fprintf(fout, "%s", RESET);
         for (uint i = 0; i < step->nbguarded; i++) {
             pp_rguard(indent+1, step->guarded+i);
             if (step->advance) {
                 pp_rstep(indent+2, step->guarded[i].next);
             } else {
-                fprintf(fout, " %s(loop)%s", _(BLACK), _(RESET));
+                fprintf(fout, " %s(loop)%s", BLACK, RESET);
             }
         }
         if (step->unguarded) {
             fprintf(fout, "\n");
             pp_indent(indent+1);
-            fprintf(fout, "%selse %sjump [%d]%s", _(PURPLE), _(RED), step->unguarded->id, _(RESET));
+            fprintf(fout, "%selse %sjump [%d]%s", PURPLE, RED, step->unguarded->id, RESET);
             pp_rstep(indent+2, step->unguarded);
         }
         fprintf(fout, "\n");
         pp_indent(indent);
-        fprintf(fout, "%s</>%s", _(BLACK), _(RESET));
+        fprintf(fout, "%s</>%s", BLACK, RESET);
     } else {
         if (step->unguarded) {
             fprintf(fout, "\n");
             pp_indent(indent);
-            fprintf(fout, "%s<%d> %sskip [%d]%s", _(YELLOW), step->id, _(RED), step->unguarded->id, _(RESET));
+            fprintf(fout, "%s<%d> %sskip [%d]%s", YELLOW, step->id, RED, step->unguarded->id, RESET);
         } else {
             fprintf(fout, "\n");
             pp_indent(indent);
-            fprintf(fout, "%s<%d> %s<END>%s", _(YELLOW), step->id, _(BLACK), _(RESET));
+            fprintf(fout, "%s<%d> %s<END>%s", YELLOW, step->id, BLACK, RESET);
             return;
         }
         if (step->advance) {
             if (step->unguarded) {
                 pp_rstep(indent, step->unguarded);
             } else {
-                fprintf(fout, " %s<END>%s", _(BLACK), _(RESET));
+                fprintf(fout, " %s<END>%s", BLACK, RESET);
             }
         } else {
-            fprintf(fout, " %s(loop)%s", _(BLACK), _(RESET));
+            fprintf(fout, " %s(loop)%s", BLACK, RESET);
         }
     }
 }
@@ -325,21 +313,21 @@ void pp_rstep (uint indent, rstep_t* step) {
 void pp_rguard (uint indent, rguard_t* guard) {
     fprintf(fout, "\n");
     pp_indent(indent);
-    fprintf(fout, "%swhen %s", _(PURPLE), _(GREEN));
+    fprintf(fout, "%swhen %s", PURPLE, GREEN);
     pp_rexpr(guard->cond);
-    fprintf(fout, " %sjump [%d]%s", _(RED), guard->next->id, _(RESET));
+    fprintf(fout, " %sjump [%d]%s", RED, guard->next->id, RESET);
 }
 
 void pp_rassign (rassign_t* assign) {
-    fprintf(fout, "%s{%d as '%s'}%s <- %s", _(CYAN), assign->target->id, assign->target->name, _(RESET), _(GREEN));
+    fprintf(fout, "%s{%d as '%s'}%s <- %s", CYAN, assign->target->id, assign->target->name, RESET, GREEN);
     pp_rexpr(assign->expr);
-    fprintf(fout, "%s", _(RESET));
+    fprintf(fout, "%s", RESET);
 }
 
 void pp_rexpr (rexpr_t* expr) {
     switch (expr->type) {
         case E_VAR:
-            fprintf(fout, "%s{%d as '%s'}%s", _(CYAN), expr->val.var->id, expr->val.var->name, _(GREEN));
+            fprintf(fout, "%s{%d as '%s'}%s", CYAN, expr->val.var->id, expr->val.var->name, GREEN);
             break;
         case E_VAL:
             fprintf(fout, "(%d)", expr->val.digit);
@@ -370,14 +358,14 @@ void pp_rexpr (rexpr_t* expr) {
 
 void pp_rvar (uint indent, var_t* var) {
     pp_indent(indent);
-    fprintf(fout, "%sref %s{%d as '%s'}%s", _(PURPLE), _(CYAN), var->id, var->name, _(RESET));
+    fprintf(fout, "%sref %s{%d as '%s'}%s", PURPLE, CYAN, var->id, var->name, RESET);
 }
 
 void pp_rcheck (rcheck_t* check) {
     pp_indent(0);
-    fprintf(fout, "%sreach? %s", _(PURPLE), _(GREEN));
+    fprintf(fout, "%sreach? %s", PURPLE, GREEN);
     pp_rexpr(check->cond);
-    fprintf(fout, "%s\n", _(RESET));
+    fprintf(fout, "%s\n", RESET);
 }
 
 
@@ -603,7 +591,7 @@ void dot_rguard (uint parent_id, uint idx, rguard_t* guard) {
 void pp_diff (rprog_t* prog, diff_t* curr, env_t env);
 
 // Print reachability trace (i.e. walk back the chain of diffs)
-void pp_sat (rprog_t* prog, sat_t* sat) {
+void pp_sat (rprog_t* prog, sat_t* sat, bool color, bool trace) {
     fout = stdout;
     use_color = false;
     for (uint i = 0; i < prog->nbcheck; i++) {

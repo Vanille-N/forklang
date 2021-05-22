@@ -21,6 +21,6 @@ void pp_dot (FILE* fdest, rprog_t* prog); // dump
 void make_dot (char* fname_src, rprog_t* prog); // render
 
 // Reachability trace
-void pp_sat (rprog_t* prog, sat_t* sat);
+void pp_sat (rprog_t* prog, sat_t* sat, bool color, bool trace);
 
 #endif // PRINTER_H

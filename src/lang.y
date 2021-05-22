@@ -224,12 +224,12 @@ int main (int argc, char **argv) {
         if (args->flags&SHOW_DOT) make_dot(argv[1], repr);
         if (args->flags&EXEC_RAND) {
             sat_t* sat = exec_prog_random(repr);
-            if (args->flags&SHOW_TRACE) pp_sat(repr, sat);
+            pp_sat(repr, sat, !(args->flags&NO_COLOR), args->flags&SHOW_TRACE);
             free_sat();
         }
         if (args->flags&EXEC_ALL) {
             sat_t* sat = exec_prog_all(repr);
-            if (args->flags&SHOW_TRACE) pp_sat(repr, sat);
+            pp_sat(repr, sat, !(args->flags&NO_COLOR), args->flags&SHOW_TRACE);
             free_sat();
         }
         free_var();
