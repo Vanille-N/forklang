@@ -27,15 +27,20 @@ const char* str_of_expr_e (ExprKind e) {
     switch (e) {
         case E_VAR: return "Var";
         case E_VAL: return "Val";
-        case E_LESS: return "Lt";
-        case E_GREATER: return "Gt";
-        case E_EQUAL: return "Eq";
+        case E_LT: return "Lt";
+        case E_LEQ: return "Leq";
+        case E_GEQ: return "Geq";
+        case E_GT: return "Gt";
+        case E_EQ: return "Eq";
         case E_AND: return "And";
         case E_OR: return "Or";
         case E_ADD: return "Add";
         case E_SUB: return "Sub";
         case E_NOT: return "Not";
         case E_NEG: return "Neg";
+        case E_MUL: return "Mul";
+        case E_MOD: return "Mod";
+        case E_DIV: return "Div";
         default: UNREACHABLE();
     }
 }
@@ -137,21 +142,14 @@ void pp_expr (Expr* expr) {
         case E_VAL:
             fprintf(fout, "%s(%d)%s", GREEN, expr->val.digit, RESET);
             break;
-        case E_LESS:
-        case E_GREATER:
-        case E_EQUAL:
-        case E_AND:
-        case E_OR:
-        case E_ADD:
-        case E_SUB:
+        case MATCH_ANY_BINOP():
             fprintf(fout, "%s(%s%s ", GREEN, YELLOW, str_of_expr_e(expr->type));
             pp_expr(expr->val.binop->lhs);
             fprintf(fout, " ");
             pp_expr(expr->val.binop->rhs);
             fprintf(fout, "%s)%s", GREEN, RESET);
             break;
-        case E_NOT:
-        case E_NEG:
+        case MATCH_ANY_MONOP():
             fprintf(fout, "%s(%s%s ", GREEN, YELLOW, str_of_expr_e(expr->type));
             pp_expr(expr->val.subexpr);
             fprintf(fout, "%s)%s", GREEN, RESET);
@@ -336,21 +334,14 @@ void pp_rexpr (RExpr* expr) {
         case E_VAL:
             fprintf(fout, "%s(%d)%s", GREEN, expr->val.digit, RESET);
             break;
-        case E_LESS:
-        case E_GREATER:
-        case E_EQUAL:
-        case E_AND:
-        case E_OR:
-        case E_ADD:
-        case E_SUB:
+        case MATCH_ANY_BINOP():
             fprintf(fout, "%s(%s ", GREEN, str_of_expr_e(expr->type));
             pp_rexpr(expr->val.binop->lhs);
             fprintf(fout, " ");
             pp_rexpr(expr->val.binop->rhs);
             fprintf(fout, "%s)%s", GREEN, RESET);
             break;
-        case E_NOT:
-        case E_NEG:
+        case MATCH_ANY_MONOP():
             fprintf(fout, "%s(%s ", GREEN, str_of_expr_e(expr->type));
             pp_rexpr(expr->val.subexpr);
             fprintf(fout, "%s)%s", GREEN, RESET);
@@ -488,34 +479,32 @@ void dot_rexpr (RExpr* expr) {
         case E_VAL:
             fprintf(fout, "%d", expr->val.digit);
             break;
-        case E_LESS:
-        case E_GREATER:
-        case E_EQUAL:
-        case E_AND:
-        case E_OR:
-        case E_ADD:
-        case E_SUB:
+        case MATCH_ANY_BINOP():
             fprintf(fout, "(");
             dot_rexpr(expr->val.binop->lhs);
             switch (expr->type) {
-                case E_LESS: fprintf(fout, "<"); break;
-                case E_GREATER: fprintf(fout, ">"); break;
-                case E_EQUAL: fprintf(fout, "="); break;
+                case E_LT: fprintf(fout, "<"); break;
+                case E_GT: fprintf(fout, ">"); break;
+                case E_EQ: fprintf(fout, "="); break;
                 case E_AND: fprintf(fout, " & "); break;
                 case E_OR: fprintf(fout, " | "); break;
                 case E_ADD: fprintf(fout, "+"); break;
                 case E_SUB: fprintf(fout, "-"); break;
+                case E_LEQ: fprintf(fout, "<="); break;
+                case E_GEQ: fprintf(fout, ">="); break;
+                case E_MUL: fprintf(fout, "*"); break;
+                case E_MOD: fprintf(fout, "%%"); break;
+                case E_DIV: fprintf(fout, "/"); break;
                 default: UNREACHABLE();
             }
             dot_rexpr(expr->val.binop->rhs);
             fprintf(fout, ")");
             break;
-        case E_NOT:
-        case E_NEG:
-            if (expr->type == E_NOT) {
-                fprintf(fout, "!");
-            } else {
-                fprintf(fout, "-");
+        case MATCH_ANY_MONOP():
+            switch (expr->type) {
+                case E_NOT: fprintf(fout, "!"); break;
+                case E_NEG: fprintf(fout, "-"); break;
+                default: UNREACHABLE();
             }
             dot_rexpr(expr->val.subexpr);
             break;

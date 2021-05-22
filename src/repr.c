@@ -98,20 +98,13 @@ RExpr* tr_expr (Expr* in) {
         case E_VAL:
             out->val.digit = in->val.digit;
             break;
-        case E_LESS:
-        case E_GREATER:
-        case E_EQUAL:
-        case E_AND:
-        case E_OR:
-        case E_ADD:
-        case E_SUB:
+        case MATCH_ANY_BINOP():
             out->val.binop = malloc(sizeof(RBinop));
             register_repr(out->val.binop);
             out->val.binop->lhs = tr_expr(in->val.binop->lhs);
             out->val.binop->rhs = tr_expr(in->val.binop->rhs);
             break;
-        case E_NOT:
-        case E_NEG:
+        case MATCH_ANY_MONOP():
             out->val.subexpr = tr_expr(in->val.subexpr);
             break;
         default: UNREACHABLE();

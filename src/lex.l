@@ -34,13 +34,18 @@ DIG	[0-9]
 ":="     { return ASSIGN; }
 "proc"   { return PROC; }
 "end"    { return END; }
-"=="     { return EQUAL; }
+"=="     { return EQ; }
 "reach"  { return REACH; }
 "+"      { return ADD; }
 "-"      { return SUB; }
+"*"      { return MUL; }
 "skip"   { return SKIP; }
-">"      { return GREATER; }
-"<"      { return LESS; }
+">"      { return GT; }
+"<"      { return LT; }
+"<="     { return LEQ; }
+">="     { return GEQ; }
+"%"      { return MOD; }
+"/"      { return DIV; }
 "("      { return OPEN; }
 ")"      { return CLOSE; }
 

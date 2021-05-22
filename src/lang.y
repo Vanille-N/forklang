@@ -59,7 +59,7 @@ uint unique_stmt_id;
 
 %token DECL SEQ BRANCH THEN IF FI DO OD
 %token ELSE BREAK NOT ASSIGN PROC END REACH SKIP OPEN CLOSE
-%token OR AND EQUAL ADD SUB GREATER LESS
+%token OR AND EQ ADD SUB GT LT GEQ LEQ DIV MOD MUL
 %token <ident> IDENT
 %token <digit> INT
 
@@ -71,10 +71,10 @@ uint unique_stmt_id;
 %left OR
 %left AND
 
-%left LESS GREATER EQUAL
+%left LT GT GEQ LEQ EQ
 
-%left ADD
-%left SUB
+%left ADD SUB
+%left MUL DIV MOD 
 
 // Negation affects only closest item
 %right NOT
@@ -132,9 +132,14 @@ expr : INT { $$ = make_expr(E_VAL, uint_as_e($1)); }
      | expr SUB expr { $$ = make_expr(E_SUB, binop_as_e(make_binop($1, $3))); }
      | expr OR expr { $$ = make_expr(E_OR, binop_as_e(make_binop($1, $3))); }
      | expr AND expr { $$ = make_expr(E_AND, binop_as_e(make_binop($1, $3))); }
-     | expr EQUAL expr { $$ = make_expr(E_EQUAL, binop_as_e(make_binop($1, $3))); }
-     | expr GREATER expr { $$ = make_expr(E_GREATER, binop_as_e(make_binop($1, $3))); }
-     | expr LESS expr { $$ = make_expr(E_LESS, binop_as_e(make_binop($1, $3))); }
+     | expr EQ expr { $$ = make_expr(E_EQ, binop_as_e(make_binop($1, $3))); }
+     | expr GT expr { $$ = make_expr(E_GT, binop_as_e(make_binop($1, $3))); }
+     | expr GEQ expr { $$ = make_expr(E_GEQ, binop_as_e(make_binop($1, $3))); }
+     | expr LT expr { $$ = make_expr(E_LT, binop_as_e(make_binop($1, $3))); }
+     | expr LEQ expr { $$ = make_expr(E_LEQ, binop_as_e(make_binop($1, $3))); }
+     | expr MUL expr { $$ = make_expr(E_MUL, binop_as_e(make_binop($1, $3))); }
+     | expr MOD expr { $$ = make_expr(E_MOD, binop_as_e(make_binop($1, $3))); }
+     | expr DIV expr { $$ = make_expr(E_DIV, binop_as_e(make_binop($1, $3))); }
      | OPEN expr CLOSE { $$ = $2; }
      | NOT expr { $$ = make_expr(E_NOT, expr_as_e($2)); }
      | SUB expr { $$ = make_expr(E_NEG, expr_as_e($2)); }

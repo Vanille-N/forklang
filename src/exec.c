@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 
 #include "hashset.h"
 #include "memreg.h"
@@ -78,18 +79,48 @@ Sat* blank_sat (RProg* prog) {
     return sat;
 }
 
-// black magic for operator expansion
-#define BINOP_E_LESS <
-#define BINOP_E_GREATER >
-#define BINOP_E_EQUAL ==
-#define BINOP_E_AND &&
-#define BINOP_E_OR ||
-#define BINOP_E_ADD +
-#define BINOP_E_SUB -
-#define MONOP_E_NOT !
-#define MONOP_E_NEG -
-#define BINOP(o) case o: return lhs BINOP_##o rhs
-#define MONOP(o) case o: return MONOP_##o val
+// Black magic for operator definition
+// Expands to check that no argument is undefined (INT_MIN)
+// and handles divisions by zero
+#define APP_BIN_E_LT <
+#define APP_BIN_E_GT >
+#define APP_BIN_E_LEQ >=
+#define APP_BIN_E_GEQ >=
+#define APP_BIN_E_EQ ==
+#define APP_BIN_E_AND &&
+#define APP_BIN_E_OR ||
+#define APP_BIN_E_ADD +
+#define APP_BIN_E_SUB -
+#define APP_BIN_E_MUL *
+#define APP_BIN_E_DIV /
+#define APP_BIN_E_MOD %
+#define APP_MON_E_NOT !
+#define APP_MON_E_NEG -
+
+#define APPLY_UNSAFE_BINOP(lhs, o, rhs) \
+    lhs APP_BIN_##o rhs
+
+#define APPLY_SAFE_BINOP(lhs, o, rhs) \
+    (lhs == INT_MIN) ? INT_MIN : /* divzero error in lhs */ \
+    (rhs == INT_MIN) ? INT_MIN : /* divzero error in rhs */ \
+    APPLY_UNSAFE_BINOP(lhs, o, rhs)
+
+#define APPLY_BINOP(lhs, o, rhs) \
+    o: \
+        return APPLY_SAFE_BINOP(lhs, o, rhs);
+
+#define APPLY_INV_BINOP(lhs, o, rhs) \
+    o: \
+        return (rhs == 0) ? INT_MIN : /* throw divzero error */ \
+            APPLY_SAFE_BINOP(lhs, o, rhs);
+
+#define APPLY_MONOP(o, val) \
+    o: \
+        return (val == INT_MIN) ? INT_MIN : /* divzero error in val */ \
+            APP_MON_##o val;
+
+#define REXPR_DEFINED(i) (i != INT_MIN) /* no divzero error */
+#define REXPR_SATISFIED(i) (i != INT_MIN && i != 0) /* defined and truthy */
 
 // straightforward expression evaluation
 int eval_expr (RExpr* expr, Env env) {
@@ -97,32 +128,30 @@ int eval_expr (RExpr* expr, Env env) {
     switch (expr->type) {
         case E_VAR: return env[expr->val.var->id];
         case E_VAL: return (int)(expr->val.digit);
-        case E_LESS:
-        case E_GREATER:
-        case E_EQUAL:
-        case E_AND:
-        case E_OR:
-        case E_ADD:
-        case E_SUB: {
+        case MATCH_ANY_BINOP(): {
             int lhs = eval_expr(expr->val.binop->lhs, env);
             int rhs = eval_expr(expr->val.binop->rhs, env);
             switch (expr->type) {
-                BINOP(E_LESS);
-                BINOP(E_GREATER);
-                BINOP(E_EQUAL);
-                BINOP(E_AND);
-                BINOP(E_OR);
-                BINOP(E_ADD);
-                BINOP(E_SUB);
+                case APPLY_BINOP(lhs, E_LT, rhs);
+                case APPLY_BINOP(lhs, E_GT, rhs);
+                case APPLY_BINOP(lhs, E_EQ, rhs);
+                case APPLY_BINOP(lhs, E_AND, rhs);
+                case APPLY_BINOP(lhs, E_OR, rhs);
+                case APPLY_BINOP(lhs, E_ADD, rhs);
+                case APPLY_BINOP(lhs, E_SUB, rhs);
+                case APPLY_BINOP(lhs, E_LEQ, rhs);
+                case APPLY_BINOP(lhs, E_GEQ, rhs);
+                case APPLY_BINOP(lhs, E_MUL, rhs);
+                case APPLY_INV_BINOP(lhs, E_DIV, rhs);
+                case APPLY_INV_BINOP(lhs, E_MOD, rhs);
                 default: UNREACHABLE();
             }
         }
-        case E_NOT:
-        case E_NEG: {
+        case MATCH_ANY_MONOP(): {
             int val = eval_expr(expr->val.subexpr, env);
             switch (expr->type) {
-                MONOP(E_NOT);
-                MONOP(E_NEG);
+                case APPLY_MONOP(E_NOT, val);
+                case APPLY_MONOP(E_NEG, val);
                 default: UNREACHABLE();
             }
         }
@@ -130,10 +159,16 @@ int eval_expr (RExpr* expr, Env env) {
     }
 }
 
-void exec_assign (RAssign* assign, Env env, Diff* diff) {
-    env[assign->target->id] = eval_expr(assign->expr, env);
-    diff->var_assign = assign->target;
-    diff->val_assign = env[assign->target->id];
+bool exec_assign (RAssign* assign, Env env, Diff* diff) {
+    int val = eval_expr(assign->expr, env);
+    if (REXPR_DEFINED(val)) {
+        env[assign->target->id] = eval_expr(assign->expr, env);
+        diff->var_assign = assign->target;
+        diff->val_assign = env[assign->target->id];
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 // Randomly choose a successor of a determined computation step
@@ -142,12 +177,13 @@ void exec_assign (RAssign* assign, Env env, Diff* diff) {
 RStep* exec_step_random (RStep* step, Env env, Diff* diff) {
     if (!step) return step; // NULL, blocked
     if (step->assign) {
-        exec_assign(step->assign, env, diff);
+        if (!exec_assign(step->assign, env, diff)) return step;
+        // Blocked by null division
     }
     uint satisfied [step->nbguarded];
     uint nbsat = 0;
     for (uint i = 0; i < step->nbguarded; i++) {
-        if (0 != eval_expr(step->guarded[i].cond, env)) {
+        if (REXPR_SATISFIED(eval_expr(step->guarded[i].cond, env))) {
             satisfied[nbsat++] = i;
         }
     }
@@ -218,13 +254,14 @@ void exec_step_all_proc (HashSet* seen, WorkList* todo, uint pid, Compute* comp)
     Diff* diff = make_diff(comp->diff);
     diff->pid_advance = pid;
     if (step->assign) {
-        exec_assign(step->assign, comp->env, diff);
+        if (!exec_assign(step->assign, comp->env, diff)) return;
+        // Blocked by null division
     }
     // find all satisfied guards
     RStep* satisfied [step->nbguarded];
     uint nbsat = 0;
     for (uint i = 0; i < step->nbguarded; i++) {
-        if (0 != eval_expr(step->guarded[i].cond, comp->env)) {
+        if (REXPR_SATISFIED(eval_expr(step->guarded[i].cond, comp->env))) {
             satisfied[nbsat++] = step->guarded[i].next;
         }
     }
