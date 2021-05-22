@@ -10,10 +10,10 @@ FILE* fout;
 #define RED COLOR(1;31)
 #define GREEN COLOR(0;32)
 #define BLUE COLOR(1;34)
-#define PURPLE COLOR(1;35)
+#define PURPLE COLOR(1;95)
 #define CYAN COLOR(1;36)
 #define YELLOW COLOR(1;33)
-#define BLACK COLOR(0;90)
+#define BLACK COLOR(0;97)
 #define RESET COLOR(0)
 
 void pp_indent (uint num) {
@@ -23,7 +23,7 @@ void pp_indent (uint num) {
     }
 }
 
-const char* str_of_expr_e (expr_e e) {
+const char* str_of_expr_e (ExprKind e) {
     switch (e) {
         case E_VAR: return "Var";
         case E_VAL: return "Val";
@@ -323,7 +323,7 @@ void pp_rguard (uint indent, RGuard* guard) {
 }
 
 void pp_rassign (RAssign* assign) {
-    fprintf(fout, "%s{%d as '%s'}%s <- %s", CYAN, assign->target->id, assign->target->name, RESET, GREEN);
+    fprintf(fout, "%s{%d. %s}%s <- %s", CYAN, assign->target->id, assign->target->name, RESET, GREEN);
     pp_rexpr(assign->expr);
     fprintf(fout, "%s", RESET);
 }
@@ -331,10 +331,10 @@ void pp_rassign (RAssign* assign) {
 void pp_rexpr (RExpr* expr) {
     switch (expr->type) {
         case E_VAR:
-            fprintf(fout, "%s{%d as '%s'}%s", CYAN, expr->val.var->id, expr->val.var->name, GREEN);
+            fprintf(fout, "%s{%d. %s}%s", CYAN, expr->val.var->id, expr->val.var->name, RESET);
             break;
         case E_VAL:
-            fprintf(fout, "(%d)", expr->val.digit);
+            fprintf(fout, "%s(%d)%s", GREEN, expr->val.digit, RESET);
             break;
         case E_LESS:
         case E_GREATER:
@@ -343,17 +343,17 @@ void pp_rexpr (RExpr* expr) {
         case E_OR:
         case E_ADD:
         case E_SUB:
-            fprintf(fout, "(%s ", str_of_expr_e(expr->type));
+            fprintf(fout, "%s(%s ", GREEN, str_of_expr_e(expr->type));
             pp_rexpr(expr->val.binop->lhs);
             fprintf(fout, " ");
             pp_rexpr(expr->val.binop->rhs);
-            fprintf(fout, ")");
+            fprintf(fout, "%s)%s", GREEN, RESET);
             break;
         case E_NOT:
         case E_NEG:
-            fprintf(fout, "(%s ", str_of_expr_e(expr->type));
+            fprintf(fout, "%s(%s ", GREEN, str_of_expr_e(expr->type));
             pp_rexpr(expr->val.subexpr);
-            fprintf(fout, ")");
+            fprintf(fout, "%s)%s", GREEN, RESET);
             break;
         default:
             UNREACHABLE();
@@ -362,7 +362,7 @@ void pp_rexpr (RExpr* expr) {
 
 void pp_rvar (uint indent, Var* var) {
     pp_indent(indent);
-    fprintf(fout, "%sref %s{%d as '%s'}%s", PURPLE, CYAN, var->id, var->name, RESET);
+    fprintf(fout, "%sref %s{%d. %s}%s", PURPLE, CYAN, var->id, var->name, RESET);
 }
 
 void pp_rcheck (RCheck* check) {
@@ -592,62 +592,70 @@ void dot_rguard (uint parent_id, uint idx, RGuard* guard) {
     fprintf(fout, "guard_%d_%d -> step_%d\n", parent_id, idx, guard->next->id);
 }
 
-void pp_diff (RProg* prog, Diff* curr, Env env);
+void pp_diff (RProg* prog, Diff* curr, Env env, bool isroot);
 
 // Print reachability trace (i.e. walk back the chain of diffs)
 void pp_sat (RProg* prog, Sat* sat, bool color, bool trace) {
+    if (!prog->nbcheck) { printf("No checks declared\n"); return; }
     fout = stdout;
-    use_color = false;
-    if (!prog->nbcheck) { printf("No checks declared\n"); }
+    use_color = color;
     for (uint i = 0; i < prog->nbcheck; i++) {
-        printf(" [%d] ", i+1);
+        printf(" %s{%d}%s ", BLUE, i+1, RESET);
         RCheck* check = prog->checks + i;
         pp_rexpr(check->cond);
         if (sat[i]) {
             printf(" is reachable\n");
-            Env env = blank_env(prog);
-            pp_diff(prog, sat[i], env);
-            free(env);
+            if (trace) {
+                Env env = blank_env(prog);
+                pp_diff(prog, sat[i], env, true);
+                free(env);
+            }
         } else {
             printf(" is not reachable\n");
         }
     }
+    printf("\n");
 }
 
 void pp_env (RProg* prog, Env env) {
-    printf("Global ");
+    printf("  %s| %s* global %s", BLUE, BLACK, GREEN);
     for (uint i = 0; i < prog->nbglob; i++) {
-        printf("%s=%d ", prog->globs[i].name, env[prog->globs[i].id]);
+        printf("[%s: %d] ", prog->globs[i].name, env[prog->globs[i].id]);
     }
-    printf("\n");
+    printf("%s\n", RESET);
     for (uint p = 0; p < prog->nbproc; p++) {
         RProc* proc = prog->procs + p;
-        printf("Local %s ", proc->name);
+        if (!proc->nbloc) continue;
+        printf("  %s| %s* local %s'%s'%s: %s",
+            BLUE, BLACK, PURPLE, proc->name, BLACK, GREEN);
         for (uint i = 0; i < proc->nbloc; i++) {
-            printf("%s=%d ", proc->locs[i].name, env[proc->locs[i].id]);
+            printf("[%s: %d] ", proc->locs[i].name, env[proc->locs[i].id]);
         }
-        printf("\n");
+        printf("%s\n", RESET);
     }
 }
 
-void pp_diff (RProg* prog, Diff* curr, Env env) {
+void pp_diff (RProg* prog, Diff* curr, Env env, bool isroot) {
     if (curr->parent) {
-        pp_diff(prog, curr->parent, env);
-        printf("Advance thread %s", prog->procs[curr->pid_advance].name);
-        if (curr->new_step) {
-            printf(" to step %d\n", curr->new_step->id);
-        } else {
-            printf(" to end\n");
-        }
+        pp_diff(prog, curr->parent, env, false);
         if (curr->var_assign) {
-            printf(
-                "Assign %s <- %d\n",
-                curr->var_assign->name,
-                curr->val_assign);
+            printf("%s  | ", BLUE);
+            printf("%s{%d. %s}", CYAN, curr->var_assign->id, curr->var_assign->name);
+            printf("%s <- %s%d%s\n", RESET, YELLOW, curr->val_assign, RESET);
             env[curr->var_assign->id] = curr->val_assign;
+            pp_env(prog, env);
         } 
-        printf("New environment\n");
-        pp_env(prog, env);
+        if (!isroot) {
+            printf("  %s| %s'%s'%s",
+                BLUE, PURPLE, prog->procs[curr->pid_advance].name, BLACK);
+            if (curr->new_step) {
+                printf(" -> %s[%d]%s\n", RED, curr->new_step->id, RESET);
+            } else {
+                printf(" -> <END>\n");
+            }
+        } else {
+            printf("\n");
+        }
     } else {
         pp_env(prog, env);
     }

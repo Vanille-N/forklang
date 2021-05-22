@@ -175,28 +175,34 @@ Sat* exec_prog_random (RProg* prog) {
         comp.env = blank_env(prog); 
         comp.state = init_state(prog);
         comp.diff = make_diff(NULL);
-        //printf("RESTART\n");
-        //pp_env(prog, comp.env);
-        //printf("=======\n");
         for (uint i = 0; i < 100; i++) {
-            // choose the process that will advance
-            uint choose_proc = (uint)rand() % prog->nbproc;
-            //printf("\n%d advances\n", choose_proc);
-            // calculate next step of the computation
-            //if (comp.state[choose_proc]) printf("  %d old state\n", comp.state[choose_proc]->id);
-            //pp_env(prog, comp.env);
-            comp.diff = make_diff(comp.diff);
-            comp.diff->pid_advance = choose_proc;
-            comp.state[choose_proc] = exec_step_random(
-                comp.state[choose_proc],
-                comp.env,
-                comp.diff);
-            //if (comp.state[choose_proc]) printf("  %d new state\n", comp.state[choose_proc]->id);
             // update reachability
+            // (do this _before_ simulating a step so that if a check
+            // is initially valid it is counted)
             for (uint k = 0; k < prog->nbcheck; k++) {
                 if (!comp.sat[k] && 0 != eval_expr(prog->checks[k].cond, comp.env)) {
                     comp.sat[k] = comp.diff;
                 }
+            }
+            // duplicate zero check, not a big deal
+            // compared to duplicating code.
+            // Probably optimized anyway.
+            if (!prog->nbproc) break;
+
+            // choose the process that will advance
+            uint choose_proc = (uint)rand() % prog->nbproc;
+            // calculate next step of the computation
+            Diff* old_diff = comp.diff;
+            RStep* old_step = comp.state[choose_proc];
+            comp.diff = make_diff(old_diff);
+            comp.diff->pid_advance = choose_proc;
+            comp.state[choose_proc] = exec_step_random(
+                old_step,
+                comp.env,
+                comp.diff);
+            if (comp.diff->new_step == old_step) {
+                // process is blocked, do not record empty diff
+                comp.diff = old_diff;
             }
         }
         free(comp.env);
@@ -274,7 +280,6 @@ Sat* exec_prog_all (RProg* prog) {
         for (uint k = 0; k < prog->nbcheck; k++) {
             if (!comp->sat[k] && 0 != eval_expr(prog->checks[k].cond, comp->env)) {
                 comp->sat[k] = comp->diff;
-                printf("%d has been reached\n", k);
             }
         }
         // advance all processes in parallel

@@ -31,15 +31,15 @@ typedef struct {
 } Assign;
 
 // a statement
-typedef enum { S_IF, S_DO, S_ASSIGN, S_BREAK, S_SKIP } stmt_e;
+typedef enum { S_IF, S_DO, S_ASSIGN, S_BREAK, S_SKIP } StmtKind;
 typedef union {
     Branch* branch;
     Assign* assign;
     int _;
-} stmt_u;
+} StmtData;
 typedef struct Stmt {
-    stmt_e type;
-    stmt_u val;
+    StmtKind type;
+    StmtData val;
     struct Stmt* next;
     uint id;
 } Stmt;
@@ -56,16 +56,16 @@ typedef enum {
     E_LESS, E_GREATER, E_EQUAL,
     E_NOT, E_AND, E_OR,
     E_ADD, E_SUB, E_NEG,
-} expr_e;
+} ExprKind;
 typedef union {
     char* ident;
     struct Expr* subexpr;
     Binop* binop;
     uint digit;
-} expr_u;
+} ExprData;
 typedef struct Expr {
-    expr_e type;
-    expr_u val;
+    ExprKind type;
+    ExprData val;
 } Expr;
 
 // a procedure
@@ -97,17 +97,17 @@ Var* make_ident (char* s, uint id);
 Prog* make_prog (Var* v, Proc* p, Check* c);
 Assign* make_assign (char* s, Expr* e);
 Branch* make_branch (Expr* cond, Stmt* stmt);
-stmt_u assign_as_s (Assign* assign);
-stmt_u branch_as_s (Branch* branch);
-stmt_u null_as_s ();
-Stmt* make_stmt (stmt_e type, stmt_u val, uint id);
+StmtData assign_as_s (Assign* assign);
+StmtData branch_as_s (Branch* branch);
+StmtData null_as_s ();
+Stmt* make_stmt (StmtKind type, StmtData val, uint id);
 Proc* make_proc (char* name, Var* vars, Stmt* stmts);
-expr_u uint_as_e (unsigned i);
-expr_u expr_as_e (Expr* expr);
+ExprData uint_as_e (uint i);
+ExprData expr_as_e (Expr* expr);
 Binop* make_binop (Expr* lhs, Expr* rhs);
-expr_u binop_as_e (Binop* binop);
-expr_u str_as_e (char* ident);
-Expr* make_expr (expr_e type, expr_u val);
+ExprData binop_as_e (Binop* binop);
+ExprData str_as_e (char* ident);
+Expr* make_expr (ExprKind type, ExprData val);
 Check* make_check (Expr* cond);
 
 #endif // AST_H

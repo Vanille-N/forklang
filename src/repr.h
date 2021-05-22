@@ -30,15 +30,16 @@ typedef struct {
 } RBinop;
 
 // an expression
+typedef ExprKind RExprKind;
 typedef union {
     Var* var;
     unsigned digit;
     RBinop* binop;
     struct RExpr* subexpr;
-} rexpr_u;
+} RExprData;
 typedef struct RExpr {
-    expr_e type;
-    rexpr_u val;
+    RExprKind type;
+    RExprData val;
 } RExpr;
 
 // an assignment operation
