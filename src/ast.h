@@ -74,6 +74,7 @@ typedef struct Expr {
     case E_LEQ: case E_AND: case E_OR: \
     case E_ADD: case E_SUB: case E_MUL: \
     case E_MOD: case E_DIV
+
 // usage:
 // switch (op) {
 //     case MATCH_ANY_BINOP(): foo(); break

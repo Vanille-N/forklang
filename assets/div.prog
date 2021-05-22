@@ -1,0 +1,29 @@
+var pf, qf, rf;
+
+proc p
+    var foo;
+    foo := 10 / 2;
+    foo := 12 % 3;
+    foo := 3 * 4;
+    pf := 1
+end
+
+proc q
+    var bar;
+    bar := 1;
+    do
+    :: 1 / (bar-1) -> qf := 1
+    :: else -> bar := bar + 1
+    od
+end
+
+proc r
+    var baz;
+    baz := 1 % 0;
+    rf := 1
+end
+
+reach pf // reachable
+reach qf // reachable
+reach rf // unreachable
+

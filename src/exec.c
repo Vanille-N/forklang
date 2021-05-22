@@ -97,30 +97,11 @@ Sat* blank_sat (RProg* prog) {
 #define APP_MON_E_NOT !
 #define APP_MON_E_NEG -
 
-#define APPLY_UNSAFE_BINOP(lhs, o, rhs) \
-    lhs APP_BIN_##o rhs
-
-#define APPLY_SAFE_BINOP(lhs, o, rhs) \
-    (lhs == INT_MIN) ? INT_MIN : /* divzero error in lhs */ \
-    (rhs == INT_MIN) ? INT_MIN : /* divzero error in rhs */ \
-    APPLY_UNSAFE_BINOP(lhs, o, rhs)
-
 #define APPLY_BINOP(lhs, o, rhs) \
-    o: \
-        return APPLY_SAFE_BINOP(lhs, o, rhs);
-
-#define APPLY_INV_BINOP(lhs, o, rhs) \
-    o: \
-        return (rhs == 0) ? INT_MIN : /* throw divzero error */ \
-            APPLY_SAFE_BINOP(lhs, o, rhs);
+    o: return lhs APP_BIN_##o rhs
 
 #define APPLY_MONOP(o, val) \
-    o: \
-        return (val == INT_MIN) ? INT_MIN : /* divzero error in val */ \
-            APP_MON_##o val;
-
-#define REXPR_DEFINED(i) (i != INT_MIN) /* no divzero error */
-#define REXPR_SATISFIED(i) (i != INT_MIN && i != 0) /* defined and truthy */
+    o: return APP_MON_##o val
 
 // straightforward expression evaluation
 int eval_expr (RExpr* expr, Env env) {
@@ -130,7 +111,12 @@ int eval_expr (RExpr* expr, Env env) {
         case E_VAL: return (int)(expr->val.digit);
         case MATCH_ANY_BINOP(): {
             int lhs = eval_expr(expr->val.binop->lhs, env);
+            if (lhs == INT_MIN) return INT_MIN;
             int rhs = eval_expr(expr->val.binop->rhs, env);
+            if (rhs == INT_MIN) return INT_MIN;
+            if (rhs == 0 && (expr->type == E_DIV || expr->type == E_MOD)) {
+                return INT_MIN; // division error
+            }
             switch (expr->type) {
                 case APPLY_BINOP(lhs, E_LT, rhs);
                 case APPLY_BINOP(lhs, E_GT, rhs);
@@ -142,8 +128,8 @@ int eval_expr (RExpr* expr, Env env) {
                 case APPLY_BINOP(lhs, E_LEQ, rhs);
                 case APPLY_BINOP(lhs, E_GEQ, rhs);
                 case APPLY_BINOP(lhs, E_MUL, rhs);
-                case APPLY_INV_BINOP(lhs, E_DIV, rhs);
-                case APPLY_INV_BINOP(lhs, E_MOD, rhs);
+                case APPLY_BINOP(lhs, E_DIV, rhs);
+                case APPLY_BINOP(lhs, E_MOD, rhs);
                 default: UNREACHABLE();
             }
         }
@@ -161,7 +147,7 @@ int eval_expr (RExpr* expr, Env env) {
 
 bool exec_assign (RAssign* assign, Env env, Diff* diff) {
     int val = eval_expr(assign->expr, env);
-    if (REXPR_DEFINED(val)) {
+    if (val != INT_MIN) {
         env[assign->target->id] = eval_expr(assign->expr, env);
         diff->var_assign = assign->target;
         diff->val_assign = env[assign->target->id];
@@ -183,7 +169,8 @@ RStep* exec_step_random (RStep* step, Env env, Diff* diff) {
     uint satisfied [step->nbguarded];
     uint nbsat = 0;
     for (uint i = 0; i < step->nbguarded; i++) {
-        if (REXPR_SATISFIED(eval_expr(step->guarded[i].cond, env))) {
+        int res = eval_expr(step->guarded[i].cond, env);
+        if (res && res != INT_MIN) {
             satisfied[nbsat++] = i;
         }
     }
@@ -220,9 +207,7 @@ Sat* exec_prog_random (RProg* prog) {
                     comp.sat[k] = comp.diff;
                 }
             }
-            // duplicate zero check, not a big deal
-            // compared to duplicating code.
-            // Probably optimized anyway.
+            // duplicate zero check, preferred to duplicating all the other code
             if (!prog->nbproc) break;
 
             // choose the process that will advance
@@ -261,7 +246,8 @@ void exec_step_all_proc (HashSet* seen, WorkList* todo, uint pid, Compute* comp)
     RStep* satisfied [step->nbguarded];
     uint nbsat = 0;
     for (uint i = 0; i < step->nbguarded; i++) {
-        if (REXPR_SATISFIED(eval_expr(step->guarded[i].cond, comp->env))) {
+        int res = eval_expr(step->guarded[i].cond, comp->env);
+        if (res && res != INT_MIN) {
             satisfied[nbsat++] = step->guarded[i].next;
         }
     }
