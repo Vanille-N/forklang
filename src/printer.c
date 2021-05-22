@@ -600,3 +600,60 @@ void dot_rguard (uint parent_id, uint idx, rguard_t* guard) {
     fprintf(fout, "guard_%d_%d -> step_%d\n", parent_id, idx, guard->next->id);
 }
 
+void pp_diff (rprog_t* prog, diff_t* curr, env_t env);
+
+// Print reachability trace (i.e. walk back the chain of diffs)
+void pp_sat (rprog_t* prog, sat_t* sat) {
+    fout = stdout;
+    use_color = false;
+    for (uint i = 0; i < prog->nbcheck; i++) {
+        printf(" [%d] ", i+1);
+        rcheck_t* check = prog->checks + i;
+        pp_rexpr(check->cond);
+        if (sat[i]) {
+            printf(" is reachable\n");
+            env_t env = blank_env(prog);
+            pp_diff(prog, sat[i], env);
+            free(env);
+        } else {
+            printf(" is not reachable\n");
+        }
+    }
+}
+
+void pp_env (rprog_t* prog, env_t env) {
+    printf("Global ");
+    for (uint i = 0; i < prog->nbglob; i++) {
+        printf("%s=%d ", prog->globs[i].name, env[prog->globs[i].id]);
+    }
+    printf("\n");
+    for (uint p = 0; p < prog->nbproc; p++) {
+        rproc_t* proc = prog->procs + p;
+        printf("Local %s ", proc->name);
+        for (uint i = 0; i < proc->nbloc; i++) {
+            printf("%s=%d ", proc->locs[i].name, env[proc->locs[i].id]);
+        }
+        printf("\n");
+    }
+}
+
+void pp_diff (rprog_t* prog, diff_t* curr, env_t env) {
+    if (curr->parent) {
+        pp_diff(prog, curr->parent, env);
+        printf("In environment\n");
+        pp_env(prog, env);
+        printf("Advance thread %s", prog->procs[curr->pid_advance].name);
+        if (curr->new_step) {
+            printf(" to step %d\n", curr->new_step->id);
+        } else {
+            printf(" to end\n");
+        }
+        if (curr->var_assign) {
+            printf(
+                "Assign %s <- %d\n",
+                curr->var_assign->name,
+                curr->val_assign);
+            env[curr->var_assign->id] = curr->val_assign;
+        } 
+    }
+}

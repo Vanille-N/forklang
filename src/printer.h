@@ -5,6 +5,7 @@
 
 #include "ast.h"
 #include "repr.h"
+#include "exec.h"
 
 typedef unsigned uint;
 
@@ -18,5 +19,8 @@ void pp_repr (FILE* f, bool color, rprog_t* prog);
 // Dot-readable format 
 void pp_dot (FILE* fdest, rprog_t* prog); // dump
 void make_dot (char* fname_src, rprog_t* prog); // render
+
+// Reachability trace
+void pp_sat (rprog_t* prog, sat_t* sat);
 
 #endif // PRINTER_H
