@@ -35,6 +35,7 @@ Diff* make_diff (Diff* parent) {
     diff->new_step = NULL;
     diff->var_assign = NULL;
     diff->val_assign = 0;
+    diff->depth = parent ? parent->depth + 1 : 1;
     return diff;
 }
 
@@ -46,6 +47,7 @@ Diff* dup_diff (Diff* src) {
     cpy->new_step = src->new_step;
     cpy->var_assign = src->var_assign;
     cpy->val_assign = src->val_assign;
+    cpy->depth = src->depth;
     return cpy;
 }
 
@@ -206,7 +208,13 @@ Sat* exec_prog_random (RProg* prog) {
             // (do this _before_ simulating a step so that if a check
             // is initially valid it is counted)
             for (uint k = 0; k < prog->nbcheck; k++) {
-                if (!comp.sat[k] && 0 != eval_expr(prog->checks[k].cond, comp.env)) {
+                int res = eval_expr(prog->checks[k].cond, comp.env);
+                if (res == 0 || res == INT_MIN) continue;
+                if (!comp.sat[k]) {
+                    // found a solution
+                    comp.sat[k] = comp.diff;
+                } else if (comp.sat[k] && comp.diff->depth < comp.sat[k]->depth) {
+                    // found a shorter solution
                     comp.sat[k] = comp.diff;
                 }
             }
@@ -301,7 +309,10 @@ Sat* exec_prog_all (RProg* prog) {
     while ((comp = dequeue(todo))) {
         // loop as long as some configurations are unexplored
         for (uint k = 0; k < prog->nbcheck; k++) {
-            if (!comp->sat[k] && 0 != eval_expr(prog->checks[k].cond, comp->env)) {
+            int res = eval_expr(prog->checks[k].cond, comp->env);
+            if (res == 0 || res == INT_MIN) continue;
+            if (!comp->sat[k]) {
+                // found a solution
                 comp->sat[k] = comp->diff;
             }
         }

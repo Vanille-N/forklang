@@ -26,4 +26,5 @@ end
 reach pf // reachable
 reach qf // reachable
 reach rf // unreachable
+reach 1 / 0 // unreachable
 

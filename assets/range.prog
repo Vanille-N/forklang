@@ -19,3 +19,6 @@ reach f == 11 // unreachable
 
 reach g == 1 // reachable
 reach g == 2 // unreachable
+
+reach {0..1} // reachable
+reach {1..0} // unreachable
