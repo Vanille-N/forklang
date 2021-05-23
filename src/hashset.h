@@ -2,6 +2,7 @@
 #define HASHSET_H
 
 #include "exec.h"
+#include "prelude.h"
 
 // Print information about hash collisions
 // and hashset histogram

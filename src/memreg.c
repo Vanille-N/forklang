@@ -1,11 +1,17 @@
 #include "memreg.h"
-
-#include <stdlib.h>
+#include "prelude.h"
 
 const uint MBLOCK_SIZE = 100;
 
+typedef struct MemBlock {
+    uint len; // capacity is fixed, len is how many are filled
+    void** block; // array of pointers to free
+    struct MemBlock* next; // when block is full add a new record
+} MemBlock;
+
 void register_alloc (MemBlock** registry, void* ptr) {
     if (!(*registry) || ((*registry) && (*registry)->len == MBLOCK_SIZE)) {
+        // block is full, allocate a new one
         MemBlock* newblock = malloc(sizeof(MemBlock));
         newblock->next = *registry;
         newblock->len = 0;

@@ -1,14 +1,24 @@
 #include "repr.h"
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
 #include "memreg.h"
 
 MemBlock* repr_alloc_registry = NULL;
 void register_repr (void* ptr) { register_alloc(&repr_alloc_registry, ptr); }
 void free_repr () { register_free(&repr_alloc_registry); }
+
+uint tr_var_list (Var** loc, Var* in);
+uint tr_check_list (RCheck** loc, Check* in);
+RExpr* tr_expr (Expr* in);
+Var* locate_var (char* ident);
+uint tr_proc_list (RProc** loc, Proc* in);
+
+void tr_stmt (
+    RStep** out, Stmt* in,
+    bool advance, RStep* skipto, RStep* breakto);
+
+RStep* tr_branch_list (
+    uint* nb, RGuard** loc, Branch* in,
+    bool advance, RStep* skipto, RStep* breakto);
+
 
 // Translate from ast to repr
 // Ast is fine for parsing and for display, but it is poorly suited
@@ -203,31 +213,10 @@ void tr_stmt (
             }
             break;
         case S_DO:
-            (*out)->nbguarded = 0;
-            (*out)->advance = true;
-            if (in->next) {
-                RStep* next = malloc(sizeof(RStep));
-                register_repr(next);
-                tr_stmt(
-                    &next, in->next,
-                    advance, skipto, breakto);
-                (*out)->unguarded = tr_branch_list(
-                    &((*out)->nbguarded), &((*out)->guarded), in->val.branch,
-                    false, // when inside a `do`, skipping does not necessarily advance
-                    // the computation
-                    *out, // skip to self
-                    next); // break to successor
-            } else {
-                (*out)->unguarded = tr_branch_list(
-                    &((*out)->nbguarded), &((*out)->guarded), in->val.branch,
-                    false, // same as above
-                    *out, // skip to self
-                    skipto); // break to parent's successor
-            }
-            break;
         case S_IF:
             (*out)->nbguarded = 0;
             (*out)->advance = true;
+            int isdo = in->type == S_DO;
             if (in->next) {
                 RStep* next = malloc(sizeof(RStep));
                 register_repr(next);
@@ -236,17 +225,27 @@ void tr_stmt (
                     advance, skipto, breakto);
                 (*out)->unguarded = tr_branch_list(
                     &((*out)->nbguarded), &((*out)->guarded), in->val.branch,
-                    true, // skip is a progress since it can exit the `if`
-                    next, // continue to successor
-                    breakto); // still break out of last loop
+                    isdo ? false : true,
+                        // when `do`, skipping does not necessarily advance the computation
+                        // when `if`, skip is a progress 
+                    isdo ? *out : next,
+                        // when `do`, skip to self
+                        // when `if`, continue to successor
+                    isdo ? next : breakto);
+                        // always break to successor
             } else {
                 (*out)->unguarded = tr_branch_list(
                     &((*out)->nbguarded), &((*out)->guarded), in->val.branch,
-                    advance, // propagate, branches inside an `if`
-                    // make the same progress as the `if` itself
-                    skipto,
-                    breakto);
-            }   
+                    isdo ? false : advance,
+                        // `do`: same as above
+                        // `if`: propagate to branches
+                    isdo ? *out : skipto,
+                        // `do`: skip to self
+                        // `if`: skip makes the same progress as self
+                    isdo ? skipto : breakto);
+                        // `do`: break to parent's successor
+                        // `if`: normal break
+            }
             break;
         default: UNREACHABLE();
     }

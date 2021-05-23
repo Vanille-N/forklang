@@ -1,8 +1,5 @@
 #include "printer.h"
 
-#include <stdlib.h>
-#include <string.h>
-
 bool use_color;
 FILE* fout;
 
@@ -209,7 +206,7 @@ void pp_repr (FILE* f, bool color, RProg* prog) {
 
 void pp_rprog (RProg* prog) {
     explored_steps = malloc(prog->nbstep * sizeof(bool));
-    for (uint i = 0; i < prog->nbstep; i++) { explored_steps[i] = false; }
+    memset(explored_steps, false, prog->nbstep * sizeof(bool));
     fprintf(fout, "%s================= REPR =================%s\n", BLUE, RESET);
     for (uint i = 0; i < prog->nbglob; i++) {
         pp_rvar(0, prog->globs+i);

@@ -1,11 +1,11 @@
 #ifndef AST_H
 #define AST_H
 
-typedef unsigned int uint;
+#include "prelude.h"
 
 // Keep track of allocations for the ast
-void free_ast ();
-void free_var ();
+void free_ast (); // to be called as soon as the translation is performed
+void free_var (); // to be called when the translated result is freed (vars are shared)
 
 struct Expr;
 struct Stmt;

@@ -1,20 +1,12 @@
-
 %{
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include "prelude.h"
 #include "ast.h"
-#include "printer.h"
-#include "exec.h"
-#include "repr.h"
-
-extern int yylineno;
-char* fname_src;
 
 int yylex ();
 
+char* fname_src;
+extern int yylineno;
 void yyerror (const char *s) {
 	fflush(stdout);
 	fprintf(stderr, "%s\nat %s:%d", s, fname_src, yylineno);
@@ -55,7 +47,7 @@ bool use_range = false;
 
 %type <var> vars decls
 %type <proc> procs procdef
-%type <check> checks reach
+%type <check> checks
 %type <stmt> stmts stmt
 %type <expr> expr
 %type <branch> branches branch else
@@ -136,7 +128,9 @@ stmt : IDENT ASSIGN expr { $$ = make_stmt(S_ASSIGN, assign_as_s(make_assign($1, 
      | SKIP { $$ = make_stmt(S_SKIP, null_as_s(), unique_stmt_id++); }
      ;
 
-// prevent duplicate `else` or other branch after `else`
+// Prevent duplicate `else` or other branch after `else`
+// Note that `::` aka BRANCH is considered as a separator rather than
+// a start marker
 branches : branch { $$ = $1; }
          | else { $$ = $1; }
          | branch BRANCH branches { ($$ = $1)->next = $3; }
@@ -148,6 +142,8 @@ branch : expr THEN stmts { $$ = make_branch($1, $3); }
 else : ELSE THEN stmts { $$ = make_branch(NULL, $3); }
      ;
 
+// Some duplication here, but attempting to factor all into an
+// `expr binop expr` yields shift/reduce conflicts
 expr : INT { $$ = make_expr(E_VAL, uint_as_e($1)); }
      | IDENT { $$ = make_expr(E_VAR, str_as_e($1)); }
      | expr ADD expr { $$ = make_expr(E_ADD, binop_as_e(make_binop($1, $3))); }
@@ -168,19 +164,17 @@ expr : INT { $$ = make_expr(E_VAL, uint_as_e($1)); }
      | SUB expr { $$ = make_expr(E_NEG, expr_as_e($2)); }
      ;
 
-
-checks : reach checks { ($$ = $1)->next = $2; }
+checks : REACH expr checks { ($$ = make_check($2))->next = $3; }
        | { $$ = NULL; }
        ;
 
-reach : REACH expr { $$ = make_check($2); }
-      ;
-
-    
 %%
 
 #include "lex.yy.c"
 #include "argparse.h"
+#include "printer.h"
+#include "exec.h"
+#include "repr.h"
 
 int main (int argc, char **argv) {
     {
@@ -201,12 +195,14 @@ int main (int argc, char **argv) {
         free_ast();
         fclose(yyin);
         yylex_destroy();
+        // last use of `program
         if (args->flags&SHOW_REPR) pp_repr(stdout, !(args->flags&NO_COLOR), repr);
         if (args->flags&SHOW_DOT) make_dot(args->fname_src, repr);
         if (args->flags&EXEC_RAND) {
             Sat* sat = exec_prog_random(repr);
             pp_sat(repr, sat, !(args->flags&NO_COLOR), args->flags&SHOW_TRACE, false);
             free_sat();
+            // `sat` does not exit this scope
         }
         if (args->flags&EXEC_ALL) {
             if (use_range) {
@@ -215,14 +211,18 @@ int main (int argc, char **argv) {
                 Sat* sat = exec_prog_all(repr);
                 pp_sat(repr, sat, !(args->flags&NO_COLOR), args->flags&SHOW_TRACE, true);
                 free_sat();
+                // `sat` does not exit this scope
             }
         }
         free_var();
         free_repr();
+        // last use of `repr`
     } else {
         fclose(yyin);
         yylex_destroy();
+        // parsing failed, cleanup ast anyway
     }
     free(args);
     free_ident();
+    // final cleanup
 }

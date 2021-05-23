@@ -1,8 +1,8 @@
 #ifndef EXEC_H
 #define EXEC_H
 
-#include <stdbool.h>
 #include "repr.h"
+#include "prelude.h"
 
 typedef int* Env;
 typedef RStep** State;
@@ -39,6 +39,6 @@ Env blank_env (RProg* prog);
 
 Sat* exec_prog_random (RProg* prog);
 Sat* exec_prog_all (RProg* prog);
-void free_sat ();
+void free_sat (); // to be called when the reachabilities have been printed
 
 #endif // EXEC_H

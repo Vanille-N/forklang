@@ -1,11 +1,9 @@
 #include "exec.h"
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <limits.h>
-
+#include "prelude.h"
 #include "hashset.h"
 #include "memreg.h"
+#include <limits.h>
+
 
 MemBlock* sat_alloc_registry = NULL;
 void register_sat (void* ptr) { register_alloc(&sat_alloc_registry, ptr); }
@@ -42,12 +40,7 @@ Diff* make_diff (Diff* parent) {
 Diff* dup_diff (Diff* src) {
     Diff* cpy = malloc(sizeof(Diff));
     register_sat(cpy);
-    cpy->parent = src->parent;
-    cpy->pid_advance = src->pid_advance;
-    cpy->new_step = src->new_step;
-    cpy->var_assign = src->var_assign;
-    cpy->val_assign = src->val_assign;
-    cpy->depth = src->depth;
+    memcpy(cpy, src, sizeof(Diff));
     return cpy;
 }
 
@@ -59,10 +52,12 @@ Compute* dup_compute (Compute* comp) {
     cpy->prog = comp->prog;
     cpy->diff = comp->diff;
     // copy by value so that environment is not modified
-    cpy->env = malloc(comp->prog->nbvar * sizeof(int));
-    for (uint i = 0; i < comp->prog->nbvar; i++) { cpy->env[i] = comp->env[i]; }
-    cpy->state = malloc(comp->prog->nbproc * sizeof(RStep));
-    for (uint i = 0; i < comp->prog->nbproc; i++) { cpy->state[i] = comp->state[i]; }
+    size_t envsize = comp->prog->nbvar * sizeof(int);
+    size_t statesize = comp->prog->nbproc * sizeof(RStep);
+    cpy->env = malloc(envsize);
+    cpy->state = malloc(statesize);
+    memcpy(cpy->env, comp->env, envsize);
+    memcpy(cpy->state, comp->state, statesize);
     return cpy;
 }
 
@@ -240,7 +235,8 @@ Sat* exec_prog_random (RProg* prog) {
     return comp.sat;
 }
 
-// Explore (i.e. add to the worklist with their updated environment) all successors of a state
+// Explore (i.e. add to the worklist with their updated environment)
+// all successors of a state
 void exec_step_all_proc (HashSet* seen, WorkList* todo, uint pid, Compute* comp) {
     RStep* step = comp->state[pid];
     if (!step) return; // NULL, blocked

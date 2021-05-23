@@ -1,20 +1,9 @@
 #ifndef REPR_H
 #define REPR_H
 
-#include <stdbool.h>
-
 #include "ast.h"
 
-typedef unsigned uint;
-
-#define UNREACHABLE() { \
-    fflush(stdout); \
-    fprintf(stderr, "\n\nFatal: Entered unreachable code in file %s at %s:%d", \
-        __FILE__, __func__, __LINE__); \
-    exit(1); \
-}
-
-void free_repr ();
+void free_repr (); // to be called at the very end
 
 // A different representation, more suited for execution
 // Not a tree but an execution graph
@@ -99,17 +88,5 @@ typedef struct {
 } RProg;
 
 RProg* tr_prog (Prog* in);
-uint tr_var_list (Var** loc, Var* in);
-uint tr_check_list (RCheck** loc, Check* in);
-RExpr* tr_expr (Expr* in);
-Var* locate_var (char* ident);
-uint tr_proc_list (RProc** loc, Proc* in);
-
-void tr_stmt (
-    RStep** out, Stmt* in,
-    bool advance, RStep* skipto, RStep* breakto);
-RStep* tr_branch_list (
-    uint* nb, RGuard** loc, Branch* in,
-    bool advance, RStep* skipto, RStep* breakto);
 
 #endif // REPR_H

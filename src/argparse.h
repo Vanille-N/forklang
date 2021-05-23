@@ -1,9 +1,10 @@
 #ifndef ARGPARSE_H
 #define ARGPARSE_H
 
-typedef unsigned int uint;
+#include "prelude.h"
 
-#define BITFLAG_UNIQUE(e) e = 1 << __COUNTER__
+enum { COUNTER_BASE = __COUNTER__ };
+#define BITFLAG_UNIQUE(e) e = 1 << (__COUNTER__ - COUNTER_BASE - 1)
 
 typedef enum {
     BITFLAG_UNIQUE(SHOW_AST),

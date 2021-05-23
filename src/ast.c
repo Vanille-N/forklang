@@ -1,8 +1,6 @@
 #include "ast.h"
-
+#include "prelude.h"
 #include "memreg.h"
-#include "stdlib.h"
-#include "string.h"
 
 MemBlock* ast_alloc_registry = NULL;
 MemBlock* var_alloc_registry = NULL;

@@ -1,13 +1,9 @@
 #ifndef PRINTER_H
 #define PRINTER_H
 
-#include <stdio.h>
-
 #include "ast.h"
 #include "repr.h"
 #include "exec.h"
-
-typedef unsigned uint;
 
 // Pretty-print parsed ast
 // (i.e. "Niveau 1")

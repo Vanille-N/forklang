@@ -1,8 +1,5 @@
 #include "argparse.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "prelude.h"
 
 typedef struct {
     char* long_name;

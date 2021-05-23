@@ -1,7 +1,5 @@
-
 #include "hashset.h"
-#include <stdlib.h>
-#include <stdio.h>
+#include "prelude.h"
 
 const ull MOD = 0x10000000;
 const ull MUL = 1103515245;
@@ -25,13 +23,8 @@ ull hash (Compute* item) {
 
 // In the rare event that two computations have the same hash
 bool equals (Compute* lhs, Compute* rhs) {
-    for (uint i = 0; i < lhs->prog->nbvar; i++) {
-        if (lhs->env[i] != rhs->env[i]) return false;
-    }
-    for (uint i = 0; i < lhs->prog->nbproc; i++) {
-        if (lhs->state[i] != rhs->state[i]) return false;
-    }
-    return true;
+    return memcmp(lhs->env, rhs->env, lhs->prog->nbvar) == 0
+        && memcmp(lhs->state, rhs->state, lhs->prog->nbproc) == 0;
 }
 
 // Allocate set buffer and fill with NULL
@@ -65,7 +58,7 @@ void free_hashset (HashSet* set) {
     printf(" | %d hash collisions\n", set->collisions);
     uint maxhist = (set->nb_elem > set->size) ? set->size : set->nb_elem;
     int histogram [maxhist + 1];
-    for (uint i = 0; i <= maxhist; i++) histogram[i] = 0;
+    memset(histogram, 0, sizeof(histogram));
     for (uint i = 0; i < set->size; i++) {
         Record* cur = set->records[i];
         uint nb = 0;
