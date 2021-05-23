@@ -29,6 +29,9 @@ Prog* program;
 uint unique_var_id;
 uint unique_stmt_id;
 
+// Uses the 'range operator' feature
+bool use_range = false;
+
 %}
 
 /****************************************************************************/
@@ -59,7 +62,7 @@ uint unique_stmt_id;
 
 %token DECL SEQ BRANCH THEN IF FI DO OD
 %token ELSE BREAK NOT ASSIGN PROC END REACH SKIP OPEN CLOSE
-%token OR AND EQ ADD SUB GT LT GEQ LEQ DIV MOD MUL
+%token OR AND EQ ADD SUB GT LT GEQ LEQ DIV MOD MUL RANGE
 %token <ident> IDENT
 %token <digit> INT
 
@@ -92,6 +95,24 @@ decls : DECL vars { $$ = $2; }
       | { $$ = NULL; }
       ;
 
+// Neat trick to chain together all variables:
+//     var x,y;
+//     var a;
+// is _not_ seen as
+//   (
+//     ('var' START) x (',' SEPARATOR) y
+//   )
+//   (';' SEPARATOR)
+//   (
+//     ('var' START) a
+//   )
+//   (';' TERMINATOR)
+// but rather as
+//   ('var' START)
+//   (x (',' SEPARATOR) y ('; var' SEPARATOR) a)
+//   (';' TERMINATOR)
+// this results in a list instead of a list of lists, and is
+// much easier to handle
 vars : IDENT SEQ { $$ = make_ident($1, unique_var_id++); }
      | IDENT COMMA vars { ($$ = make_ident($1, unique_var_id++))->next = $3; }
      | IDENT SEQ DECL vars { ($$ = make_ident($1, unique_var_id++))->next = $4; }
@@ -115,6 +136,7 @@ stmt : IDENT ASSIGN expr { $$ = make_stmt(S_ASSIGN, assign_as_s(make_assign($1, 
      | SKIP { $$ = make_stmt(S_SKIP, null_as_s(), unique_stmt_id++); }
      ;
 
+// prevent duplicate `else` or other branch after `else`
 branches : branch { $$ = $1; }
          | else { $$ = $1; }
          | branch BRANCH branches { ($$ = $1)->next = $3; }
@@ -140,6 +162,7 @@ expr : INT { $$ = make_expr(E_VAL, uint_as_e($1)); }
      | expr MUL expr { $$ = make_expr(E_MUL, binop_as_e(make_binop($1, $3))); }
      | expr MOD expr { $$ = make_expr(E_MOD, binop_as_e(make_binop($1, $3))); }
      | expr DIV expr { $$ = make_expr(E_DIV, binop_as_e(make_binop($1, $3))); }
+     | '{' expr RANGE expr '}' { use_range = true; $$ = make_expr(E_RANGE, binop_as_e(make_binop($2, $4))); }
      | OPEN expr CLOSE { $$ = $2; }
      | NOT expr { $$ = make_expr(E_NOT, expr_as_e($2)); }
      | SUB expr { $$ = make_expr(E_NEG, expr_as_e($2)); }
@@ -160,6 +183,9 @@ reach : REACH expr { $$ = make_check($2); }
 #include "argparse.h"
 
 int main (int argc, char **argv) {
+    {
+        srand((unsigned)(unsigned long long)getpid());
+    };
     Args* args = parse_args(argc, argv);
 	if (!(yyin = fopen(args->fname_src, "r"))) {
         fprintf(stderr, "File not found '%s'\n", args->fname_src);
@@ -179,13 +205,17 @@ int main (int argc, char **argv) {
         if (args->flags&SHOW_DOT) make_dot(args->fname_src, repr);
         if (args->flags&EXEC_RAND) {
             Sat* sat = exec_prog_random(repr);
-            pp_sat(repr, sat, !(args->flags&NO_COLOR), args->flags&SHOW_TRACE);
+            pp_sat(repr, sat, !(args->flags&NO_COLOR), args->flags&SHOW_TRACE, false);
             free_sat();
         }
         if (args->flags&EXEC_ALL) {
-            Sat* sat = exec_prog_all(repr);
-            pp_sat(repr, sat, !(args->flags&NO_COLOR), args->flags&SHOW_TRACE);
-            free_sat();
+            if (use_range) {
+                fprintf(stderr, "The 'range operator' feature is not available with --all. Use --rand instead.\n");
+            } else {
+                Sat* sat = exec_prog_all(repr);
+                pp_sat(repr, sat, !(args->flags&NO_COLOR), args->flags&SHOW_TRACE, true);
+                free_sat();
+            }
         }
         free_var();
         free_repr();

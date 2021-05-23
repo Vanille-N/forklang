@@ -1,5 +1,5 @@
-#include "hashset.h"
 
+#include "hashset.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -132,6 +132,7 @@ bool try_insert (HashSet* set, Compute* item) {
 WorkList* create_worklist () {
     WorkList* queue = malloc(sizeof(WorkList));
     queue->head = NULL;
+    queue->tail = NULL;
     return queue;
 }
 
@@ -139,8 +140,14 @@ void enqueue (WorkList* todo, Compute* item) {
     Record* rec = malloc(sizeof(Record));
     rec->data = dup_compute(item);
     rec->hash = 0;
-    rec->next = todo->head;
-    todo->head = rec;
+    rec->next = NULL;
+    if (todo->head) {
+        todo->tail->next = rec;
+        todo->tail = rec;
+    } else {
+        todo->head = rec;
+        todo->tail = rec;
+    }
 }
 
 Compute* dequeue (WorkList* todo) {

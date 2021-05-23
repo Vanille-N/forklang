@@ -48,6 +48,7 @@ DIG	[0-9]
 "/"      { return DIV; }
 "("      { return OPEN; }
 ")"      { return CLOSE; }
+"\.\."   { return RANGE; }
 
 {DIG}+ { yylval.digit = (uint)atoi(yytext); return INT; }
 

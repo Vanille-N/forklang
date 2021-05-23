@@ -3,6 +3,8 @@
 
 #include "exec.h"
 
+// Print information about hash collisions
+// and hashset histogram
 #define HASHSET_SHOW_STATS 0
 
 typedef unsigned long long ull;
@@ -31,8 +33,11 @@ void insert (HashSet* set, Compute* item, ull hashed);
 bool query (HashSet* set, Compute* item, ull hashed);
 bool try_insert (HashSet* set, Compute* item);
 
+// Queue : new elements at the end
+// -> guarantees shortest path is found
 typedef struct {
     Record* head;
+    Record* tail;
 } WorkList;
 
 WorkList* create_worklist ();

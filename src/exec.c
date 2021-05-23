@@ -79,9 +79,7 @@ Sat* blank_sat (RProg* prog) {
     return sat;
 }
 
-// Black magic for operator definition
-// Expands to check that no argument is undefined (INT_MIN)
-// and handles divisions by zero
+// Macro concatenation for concise and extensible operator definition
 #define APP_BIN_E_LT <
 #define APP_BIN_E_GT >
 #define APP_BIN_E_LEQ >=
@@ -94,6 +92,7 @@ Sat* blank_sat (RProg* prog) {
 #define APP_BIN_E_MUL *
 #define APP_BIN_E_DIV /
 #define APP_BIN_E_MOD %
+
 #define APP_MON_E_NOT !
 #define APP_MON_E_NEG -
 
@@ -103,7 +102,7 @@ Sat* blank_sat (RProg* prog) {
 #define APPLY_MONOP(o, val) \
     o: return APP_MON_##o val
 
-// straightforward expression evaluation
+// Straightforward expression evaluation
 int eval_expr (RExpr* expr, Env env) {
     fflush(stdout);
     switch (expr->type) {
@@ -111,11 +110,11 @@ int eval_expr (RExpr* expr, Env env) {
         case E_VAL: return (int)(expr->val.digit);
         case MATCH_ANY_BINOP(): {
             int lhs = eval_expr(expr->val.binop->lhs, env);
-            if (lhs == INT_MIN) return INT_MIN;
+            if (lhs == INT_MIN) return INT_MIN; // divzero error bubbles up
             int rhs = eval_expr(expr->val.binop->rhs, env);
             if (rhs == INT_MIN) return INT_MIN;
             if (rhs == 0 && (expr->type == E_DIV || expr->type == E_MOD)) {
-                return INT_MIN; // division error
+                return INT_MIN; // raise division error
             }
             switch (expr->type) {
                 case APPLY_BINOP(lhs, E_LT, rhs);
@@ -130,6 +129,10 @@ int eval_expr (RExpr* expr, Env env) {
                 case APPLY_BINOP(lhs, E_MUL, rhs);
                 case APPLY_BINOP(lhs, E_DIV, rhs);
                 case APPLY_BINOP(lhs, E_MOD, rhs);
+                case E_RANGE:
+                    if (lhs > rhs) return INT_MIN;
+                    int pick = lhs + (rand() % (rhs - lhs + 1));
+                    return pick;
                 default: UNREACHABLE();
             }
         }
@@ -211,16 +214,13 @@ Sat* exec_prog_random (RProg* prog) {
             if (!prog->nbproc) break;
 
             // choose the process that will advance
-            uint choose_proc = (uint)rand() % prog->nbproc;
+            uint procid = (uint)rand() % prog->nbproc;
             // calculate next step of the computation
             Diff* old_diff = comp.diff;
-            RStep* old_step = comp.state[choose_proc];
+            RStep* old_step = comp.state[procid];
             comp.diff = make_diff(old_diff);
-            comp.diff->pid_advance = choose_proc;
-            comp.state[choose_proc] = exec_step_random(
-                old_step,
-                comp.env,
-                comp.diff);
+            comp.diff->pid_advance = procid;
+            comp.state[procid] = exec_step_random(old_step, comp.env, comp.diff);
             if (comp.diff->new_step == old_step) {
                 // process is blocked, do not record empty diff
                 comp.diff = old_diff;

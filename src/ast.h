@@ -57,6 +57,7 @@ typedef enum {
     E_NOT, E_AND, E_OR, E_NEG,
     E_ADD, E_SUB,
     E_MUL, E_MOD, E_DIV,
+    E_RANGE,
 } ExprKind;
 typedef union {
     char* ident;
@@ -73,8 +74,7 @@ typedef struct Expr {
     E_LT: case E_GT: case E_EQ: case E_GEQ: \
     case E_LEQ: case E_AND: case E_OR: \
     case E_ADD: case E_SUB: case E_MUL: \
-    case E_MOD: case E_DIV
-
+    case E_MOD: case E_DIV: case E_RANGE
 // usage:
 // switch (op) {
 //     case MATCH_ANY_BINOP(): foo(); break

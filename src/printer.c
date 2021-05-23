@@ -41,6 +41,7 @@ const char* str_of_expr_e (ExprKind e) {
         case E_MUL: return "Mul";
         case E_MOD: return "Mod";
         case E_DIV: return "Div";
+        case E_RANGE: return "Rng";
         default: UNREACHABLE();
     }
 }
@@ -400,7 +401,7 @@ void make_dot (char* fname_src, RProg* prog) {
     pp_dot(fdot, prog);
     fclose(fdot);
     // execute dot
-    printf("%s -> %s\n", fname_dot, fname_png);
+    printf("File saved as %s\n\n", fname_png);
     char* cmd = malloc((len*2 + 50) * sizeof(char));
     sprintf(cmd, "dot -Tpng %s -o %s", fname_dot, fname_png);
     system(cmd);
@@ -495,6 +496,7 @@ void dot_rexpr (RExpr* expr) {
                 case E_MUL: fprintf(fout, "*"); break;
                 case E_MOD: fprintf(fout, "%%"); break;
                 case E_DIV: fprintf(fout, "/"); break;
+                case E_RANGE: fprintf(fout, ".."); break;
                 default: UNREACHABLE();
             }
             dot_rexpr(expr->val.binop->rhs);
@@ -516,7 +518,7 @@ void dot_rexpr (RExpr* expr) {
 void dot_rproc (RProc* proc) {
     fprintf(
         fout,
-        "{ thread_%s [label=\"%s\" shape=invhouse style=\"filled\" fillcolor=blue] }\n",
+        "{ thread_%s [label=\"%s\" fontcolor=white shape=invhouse style=\"filled\" fillcolor=blue] }\n",
         proc->name, proc->name);
     for (uint i = 1; i < proc->nbloc; i++) {
         fprintf(fout, "{ var_%d -> var_%d [style=invis] }\n",
@@ -584,7 +586,7 @@ void dot_rguard (uint parent_id, uint idx, RGuard* guard) {
 void pp_diff (RProg* prog, Diff* curr, Env env, bool isroot);
 
 // Print reachability trace (i.e. walk back the chain of diffs)
-void pp_sat (RProg* prog, Sat* sat, bool color, bool trace) {
+void pp_sat (RProg* prog, Sat* sat, bool color, bool trace, bool exhaustive) {
     if (!prog->nbcheck) { printf("No checks declared\n"); return; }
     fout = stdout;
     use_color = color;
@@ -599,8 +601,10 @@ void pp_sat (RProg* prog, Sat* sat, bool color, bool trace) {
                 pp_diff(prog, sat[i], env, true);
                 free(env);
             }
-        } else {
+        } else if (exhaustive) {
             printf(" is not reachable\n");
+        } else {
+            printf(" has not been reached\n");
         }
     }
     printf("\n");

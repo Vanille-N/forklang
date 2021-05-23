@@ -13,3 +13,9 @@ proc p
     od;
     break
 end
+
+proc q
+    do
+    :: else -> skip
+    od
+end
