@@ -1,0 +1,36 @@
+\section{Usage}
+
+\newcommand{\ddash}{\textminus\textminus}
+
+Flags are available to control the execution of the program.\\
+
+\textbf{Level 1}: \ttt{\ddash ast} (a.k.a. \ttt{-a}) will print the syntax tree in a readable manner\\
+
+\textbf{Level 2}: \ttt{\ddash rand} (\ttt{-R}) will randomly execute 100 steps on 100 instances of the
+program\\
+
+\textbf{Level 3}: \ttt{\ddash all} (\ttt{-A}) will exhaustively explore all configurations\\
+
+\textbf{Levels 2\&3}:\\
+\ttt{\ddash repr} (\ttt{-r}) will print the internal representation as text,\\
+\ttt{\ddash dot} (\ttt{-d}) will dump and render a \ttt{.dot} file for
+\href{https://graphviz.org/}{\ttt{graphviz}}\\
+\ttt{\ddash trace} (\ttt{-t}) will print for each reachable configuration
+a sequence of steps that leads to it being satisfied\\
+
+\textbf{Misc}:\\
+\ttt{\ddash help} (\ttt{-h}) will print a help message and exit,\\
+\ttt{\ddash no-color} (\ttt{-c}) will turn of ANSI color code formatting for
+all pretty-prints\\
+
+\textbf{Examples}:
+\begin{lstlisting}
+$ make
+$ ./lang assets/sort.prog -ar --no-color
+# prints the ast and the representation of sort, without special characters
+$ ./lang assets/sort.prog --dot
+# renders assets/sort.prog.png that represents the program
+$ ./lang assets/sort.prog --all --rand -t
+# executes sort in both Monte-Carlo and exhaustive modes, prints paths towards
+# satisfied conditions
+\end{lstlisting}

@@ -1,0 +1,16 @@
+\section{Level 1}
+
+Although a later email said to print a program that is semantically
+equivalent, I followed the original requirement to print ``a representation of
+the structure''.\\
+
+The output is \textit{not} a valid program.\\
+This is also in order to make it easier to link the statements to their
+corresponding internal representation by means of their unique identifier
+which is printed in the AST.\\
+
+\input{sample-ast.dump}
+
+Notice that the use of S-expressions makes the parsing of operators unambiguous,
+and that each statement has a \ttt{<n>} number that uniquely identifies it
+and that links it to the internal representation.

@@ -1,0 +1,18 @@
+\section{Structure}
+
+\begin{itemize}
+    \item \ttt{lex.l}, \ttt{lang.y}:
+        parsing, dispatch function calls from \ttt{main}, free up ressources
+    \item \ttt{ast.h}, \ttt{ast.c}:
+        structure of the parse result and builders to use inside the parser
+    \item \ttt{argparse.h}, \ttt{argparse.c}:
+        argument parsing
+    \item \ttt{repr.h}, \ttt{repr.c}:
+        internal representation of the program for better execution (see \tbf{Level 2})
+    \item \ttt{memreg.h}, \ttt{memreg.c}:
+        generic facility to handle freeing ressources (see \tbf{Notes})
+    \item \ttt{printer.h}, \ttt{printer.c}:
+        pretty-printers for all levels
+    \item \ttt{hashset.h}, \ttt{hashset.c}:
+        custom set and worklist implementation for \textbf{Level 3}
+\end{itemize}

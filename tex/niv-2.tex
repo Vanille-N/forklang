@@ -1,0 +1,63 @@
+\section{Level 2}
+
+The chosen representation is as a graph.\\
+
+Each statement is represented internally as
+\begin{lstlisting}
+typedef struct RStep {
+    bool advance;
+    RAssign* assign;
+    unsigned nbguarded;
+    struct RGuard* guarded;
+    struct RStep* unguarded;
+    uint id;
+} RStep;
+\end{lstlisting}
+Where:
+\begin{itemize}
+    \item \ttt{advance} is used to identify loops
+    \item \ttt{assign} represents an assignment
+    \item \ttt{guarded} indicates guarded clauses in the event of an
+        \ttt{if} or \ttt{do}
+    \item \ttt{unguarded} is either an \ttt{else} for an \ttt{if} or \ttt{do}
+        clause, or the next step to execute.
+\end{itemize}~\\
+
+The algorithm for calculating one step of the execution is as follows:
+\begin{enumerate}
+    \item if \ttt{assign} is not \ttt{NULL}, perform assignment
+    \item if \ttt{nbguarded == 0} then jump to \ttt{unguarded} and terminate
+    \item else if one of \ttt{guarded} is satisfied, execute it
+    \item otherwise \ttt{unguarded} is an \ttt{else} branch, execute it
+\end{enumerate}
+If at any point \ttt{NULL} is reached it means the procedure has terminated.\\
+
+Expressions possess direct pointers to the variables they contain, which are
+set up during the translation step in \ttt{repr.c}.\\
+
+This level also includes some pretty-printing facilities.
+
+\input{sample-repr.dump}
+
+Note:
+\begin{itemize}
+    \item variables now have a unique identifier as well
+    \item the process indicates its entry point which is where the
+        execution will start
+    \item each statement has a \ttt{[n]} marker which indicates
+        to jump to the corresponding \ttt{<n>}, and \ttt{<n>} is the same
+        as in the pretty-printing for \tbf{Level 1}
+    \item the continuation of a loop is inlined inside it, and looping
+        constructs are identified with \ttt{(loop)}
+\end{itemize}~\\
+
+
+An alternative representation as a graph is also available,\\
+for example \ttt{./lang assets/sort.prog \ddash dot \&\& xdg-open assets/sort.prog.png}:
+
+\begin{center}
+\includegraphics[height=24cm]{../assets/sort.prog.png}
+\end{center}
+Conditions are diamonds, assignments are ovals, branching statements
+(\ttt{do},\ttt{if}) are triangles, variables are rectangles.
+

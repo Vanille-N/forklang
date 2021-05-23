@@ -1,0 +1,35 @@
+\tbf{Sample}: \ttt{./lang assets/lock.prog --repr -c}
+\begin{lstlisting}
+================= REPR =================
+||  ref {1. lock}
+||  ref {0. fin}
+||  thread 'p' entrypoint [0]
+||    ref {2. todo}
+||    <0> {1. lock} <- (2) then [1]
+||    <1> {2. todo} <- (1) then [9]
+||    <9> 1 guarded, default
+||      when (Eq {2. todo} (0)) jump [2]
+||        <2> skip [10]
+||        <10> {1. lock} <- (Sub {1. lock} (1)) then [11]
+||        <11> {0. fin} <- (1) <END>
+||        <END>
+||      else jump [3]
+||        <3> {2. todo} <- (0) then [4]
+||        <4> {1. lock} <- (Add {1. lock} (1)) then [8]
+||        <8> 2 guarded
+||          when (1) jump [5]
+||            <5> skip [9] (loop)
+||          when (1) jump [6]
+||            <6> {1. lock} <- (Sub {1. lock} (1)) then [7]
+||            <7> {2. todo} <- (1) then [9] (loop)
+||        </>
+||    </>
+||  end
+||  reach? (Eq {1. lock} (1))
+||  reach? (Eq {1. lock} (2))
+||  reach? (Eq {1. lock} (3))
+||  reach? (Eq {1. lock} (4))
+||  reach? (And {0. fin} (Not (Eq {1. lock} (2))))
+========================================
+
+\end{lstlisting}
