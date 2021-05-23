@@ -9,3 +9,4 @@ vgcore.*
 vg.report
 *.png
 *.dot
+*.dump

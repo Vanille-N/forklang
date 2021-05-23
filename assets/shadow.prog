@@ -1,0 +1,10 @@
+var p;
+var p;
+
+proc p
+    var p;
+    var p;
+    p := 1
+end
+
+reach p
