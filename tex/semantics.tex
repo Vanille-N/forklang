@@ -1,0 +1,18 @@
+\section{Semantics}
+
+Some parts of the semantics were left for us to clarify, here is what I have chosen.\\
+
+\textbf{\ttt{break} outside of a loop terminates the process.\\
+Example:
+\begin{lstlisting}
+var f;
+proc p
+    f := 1;
+    break;
+    f := 2
+end
+
+reach f == 1 // reachable
+reach f == 2 // unreachable
+\end{lstlisting}
+
