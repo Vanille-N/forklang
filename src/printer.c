@@ -591,6 +591,7 @@ void pp_sat (RProg* prog, Sat* sat, bool color, bool trace, bool exhaustive) {
     fout = stdout;
     use_color = color;
     for (uint i = 0; i < prog->nbcheck; i++) {
+        if (trace) putchar('\n');
         printf(" %s{%d}%s ", BLUE, i+1, RESET);
         RCheck* check = prog->checks + i;
         pp_rexpr(check->cond);
@@ -607,7 +608,6 @@ void pp_sat (RProg* prog, Sat* sat, bool color, bool trace, bool exhaustive) {
             printf(" has not been reached\n");
         }
     }
-    printf("\n");
 }
 
 void pp_env (RProg* prog, Env env) {
@@ -646,8 +646,6 @@ void pp_diff (RProg* prog, Diff* curr, Env env, bool isroot) {
             } else {
                 printf(" -> <END>\n");
             }
-        } else {
-            printf("\n");
         }
     } else {
         for (uint i = 0; i < prog->nbproc; i++) {

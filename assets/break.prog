@@ -1,0 +1,32 @@
+var f,g,h;
+
+proc p
+    f := 1;
+    break;
+    f := 2
+end
+
+proc q
+    if
+    :: 1 -> g := 1; break; g := 2
+    fi;
+    g := 3
+end
+
+proc r
+    do
+    :: 1 -> h := 1; break; h := 2
+    od;
+    h := 3
+end
+
+reach f == 1 // reachable
+reach f == 2 // unreachable
+
+reach g == 1 // reachable
+reach g == 2 // unreachable
+reach g == 3 // unreachable
+
+reach h == 1 // reachable
+reach h == 2 // unreachable
+reach h == 3 // reachable

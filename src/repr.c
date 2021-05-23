@@ -196,6 +196,10 @@ void tr_stmt (
                         &((*out)->unguarded), in->next,
                         advance, skipto, breakto); // normal transfer
                 (*out)->advance = true; // advances to `next`
+            } else {
+                // by default, skip
+                (*out)->unguarded = skipto;
+                (*out)->advance = advance;
             }
             break;
         case S_DO:

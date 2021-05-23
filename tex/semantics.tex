@@ -2,17 +2,65 @@
 
 Some parts of the semantics were left for us to clarify, here is what I have chosen.\\
 
-\textbf{\ttt{break} outside of a loop terminates the process.\\
-Example:
+\textbf{Breaking without a loop terminates the process}
 \begin{lstlisting}
 var f;
 proc p
     f := 1;
-    break;
+    break; // proc exits here
     f := 2
 end
 
 reach f == 1 // reachable
 reach f == 2 // unreachable
+\end{lstlisting}
+
+
+\textbf{Division by zero is considered false and blocking}
+\begin{lstlisting}
+var f, g;
+proc p
+    f := 1 / 0; proc is blocked here
+    f := 2
+end
+
+proc q
+    if
+    :: 1 \% 0 -> g := 1 // guard is false
+    :: else -> g := 2 // else branch is chosen
+    fi
+end
+
+reach f == 2 // unreachable
+reach g == 1 // unreachable
+reach g == 2 // reachable
+\end{lstlisting}
+
+\textbf{Range}\\
+In addition, I had some time left to implement as an extension
+a range operator. It is not available for exhaustive exploration,
+but the Monte-Carlo method supports it.\\
+It is best explained by the following example:
+\begin{lstlisting}
+var f,g;
+proc p
+    f := 2 * {0..5} // f can take any even value between 0 and 10
+end
+
+proc q
+    var x;
+    x := 5;
+    if
+    :: 0 < {-x..x} -> g := 1 // guard satisfied if number picked is 1,2,...,x
+    :: {1..-1} -> g := 2 // empty range is never satisfied
+    fi
+end
+
+reach f == 0 // reachable
+reach f == 1 // unreachable
+reach f == 10 // reachable
+reach f == 11 // unreachable
+
+reach g == 1 // reachable
 \end{lstlisting}
 

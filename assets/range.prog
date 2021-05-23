@@ -1,22 +1,21 @@
-var f, g, h, fin;
-
+var f,g;
 proc p
-//    f := {1..10};
-    if
-    :: 0 < {-5..5} -> g := 1
-    :: else -> skip
-    fi;
-//    h := {1..5} + 10*{1..5};
-    fin := 1
+    f := 2 * {0..5}
 end
 
-//reach fin && f == 3 // reachable
-//reach fin && f == 10 // reachable
-//reach fin && f == -1 // unreachable
+proc q
+    var x;
+    x := 5;
+    if
+    :: 0 < {-x..x} -> g := 1
+    :: {1..-1} -> g := 2
+    fi
+end
 
-reach fin && g // reachable
-reach fin && !g // reachable
+reach f == 0 // reachable
+reach f == 1 // unreachable
+reach f == 10 // reachable
+reach f == 11 // unreachable
 
-//reach h == 11 // reachable
-//reach h == 55 // reachable
-//reach h == 47 // unreachable
+reach g == 1 // reachable
+reach g == 2 // unreachable
