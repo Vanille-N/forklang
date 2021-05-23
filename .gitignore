@@ -10,3 +10,6 @@ vg.report
 *.png
 *.dot
 *.dump
+
+# archive
+NVILLANI*

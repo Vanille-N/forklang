@@ -71,8 +71,8 @@ tex/trace.dump:
 	make FILE=lock ARG=trace EXTRA=-A create-dump
 
 create-dump: lang
-	CMD="./lang assets/${FILE}.prog --${ARG} ${EXTRA} -c" ; \
-	DEST="tex/${ARG}.dump" ; \
+	CMD="./lang assets/$(FILE).prog --$(ARG) $(EXTRA) -c" ; \
+	DEST="tex/$(ARG).dump" ; \
 		echo "Executing $$CMD" ; \
 		echo "\\begin{lstlisting}" > $$DEST ; \
 		echo "$$ $$CMD" >> $$DEST ; \
@@ -82,11 +82,22 @@ create-dump: lang
 assets/sort.prog.png: lang assets/sort.prog
 	./lang assets/sort.prog --dot
 
+ARCHIVE = NVILLANI_LF-Project
+tar:
+	make README.pdf
+	make clean
+	mkdir $(ARCHIVE)
+	cp -r assets $(ARCHIVE)/
+	cp -r src $(ARCHIVE)/
+	cp -r Makefile README.pdf $(ARCHIVE)/
+	tar czf $(ARCHIVE).tar.gz $(ARCHIVE)
+
 clean:
 	rm -rf build
 	rm -f $(BIN)
 	rm -f report.bison vgcore.* vg.report
 	rm -f assets/*.png assets/*.dot
 	rm -f tex/*.dump
+	rm -rf $(ARCHIVE) $(ARCHIVE).tar.gz
 
-.PHONY: clean
+.PHONY: clean tar
