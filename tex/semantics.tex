@@ -51,7 +51,7 @@ proc q
     var x;
     x := 5;
     if
-    :: 0 < {-x..x} -> g := 1 // guard satisfied if number picked is 1,2,...,x
+    :: 0 < {-x..x} -> g := 1 // ~50% chance guard is satisfied
     :: {1..-1} -> g := 2 // empty range is never satisfied
     fi
 end
