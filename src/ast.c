@@ -50,15 +50,10 @@ Branch* make_branch (Expr* cond, Stmt* stmt) {
     return branch;
 }
 
-StmtData assign_as_s (Assign* assign) { return (StmtData){ .assign = assign }; }
-StmtData branch_as_s (Branch* branch) { return (StmtData){ .branch = branch }; }
-StmtData null_as_s () { return (StmtData){ ._ = 0 }; }
-
-Stmt* make_stmt (StmtKind type, StmtData val, uint id) {
+Stmt* make_stmt (StmtKind type, uint id) {
     Stmt* stmt = malloc(sizeof(Stmt));
     register_ast(stmt);
     stmt->type = type;
-    stmt->val = val;
     stmt->next = NULL;
     stmt->id = id;
     return stmt;
@@ -74,9 +69,6 @@ Proc* make_proc (char* name, Var* locs, Stmt* stmts) {
     return proc;
 }
 
-ExprData uint_as_e (uint i) { return (ExprData){ .digit = i }; }
-ExprData expr_as_e (Expr* expr) { return (ExprData){ .subexpr = expr }; }
-
 Binop* make_binop (Expr* lhs, Expr* rhs) {
     Binop* binop = malloc(sizeof(Binop));
     register_ast(binop);
@@ -85,14 +77,10 @@ Binop* make_binop (Expr* lhs, Expr* rhs) {
     return binop;
 }
 
-ExprData binop_as_e (Binop* binop) { return (ExprData){ .binop = binop }; }
-ExprData str_as_e (char* ident) { return (ExprData){ .ident = ident }; }
-
-Expr* make_expr (ExprKind type, ExprData val) {
+Expr* make_expr (ExprKind type) {
     Expr* expr = malloc(sizeof(Expr));
     register_ast(expr);
     expr->type = type;
-    expr->val = val;
     return expr;
 }
 

@@ -121,11 +121,11 @@ stmts : stmt { $$ = $1; }
       | stmt SEQ stmts { ($$ = $1)->next = $3; }
       ;
 
-stmt : IDENT ASSIGN expr { $$ = make_stmt(S_ASSIGN, assign_as_s(make_assign($1, $3)), unique_stmt_id++); }
-     | DO BRANCH branches OD { $$ = make_stmt(S_DO, branch_as_s($3), unique_stmt_id++); }
-     | IF BRANCH branches FI { $$ = make_stmt(S_IF, branch_as_s($3), unique_stmt_id++); }
-     | BREAK { $$ = make_stmt(S_BREAK, null_as_s(), unique_stmt_id++); }
-     | SKIP { $$ = make_stmt(S_SKIP, null_as_s(), unique_stmt_id++); }
+stmt : IDENT ASSIGN expr { ($$ = make_stmt(S_ASSIGN, unique_stmt_id++))->val.assign = make_assign($1, $3); }
+     | DO BRANCH branches OD { ($$ = make_stmt(S_DO, unique_stmt_id++))->val.branch = $3; }
+     | IF BRANCH branches FI { ($$ = make_stmt(S_IF, unique_stmt_id++))->val.branch = $3; }
+     | BREAK { ($$ = make_stmt(S_BREAK, unique_stmt_id++))->val._ = 0; }
+     | SKIP { ($$ = make_stmt(S_SKIP, unique_stmt_id++))->val._ = 0; }
      ;
 
 // Prevent duplicate `else` or other branch after `else`
@@ -144,24 +144,26 @@ else : ELSE THEN stmts { $$ = make_branch(NULL, $3); }
 
 // Some duplication here, but attempting to factor all into an
 // `expr binop expr` yields shift/reduce conflicts
-expr : INT { $$ = make_expr(E_VAL, uint_as_e($1)); }
-     | IDENT { $$ = make_expr(E_VAR, str_as_e($1)); }
-     | expr ADD expr { $$ = make_expr(E_ADD, binop_as_e(make_binop($1, $3))); }
-     | expr SUB expr { $$ = make_expr(E_SUB, binop_as_e(make_binop($1, $3))); }
-     | expr OR expr { $$ = make_expr(E_OR, binop_as_e(make_binop($1, $3))); }
-     | expr AND expr { $$ = make_expr(E_AND, binop_as_e(make_binop($1, $3))); }
-     | expr EQ expr { $$ = make_expr(E_EQ, binop_as_e(make_binop($1, $3))); }
-     | expr GT expr { $$ = make_expr(E_GT, binop_as_e(make_binop($1, $3))); }
-     | expr GEQ expr { $$ = make_expr(E_GEQ, binop_as_e(make_binop($1, $3))); }
-     | expr LT expr { $$ = make_expr(E_LT, binop_as_e(make_binop($1, $3))); }
-     | expr LEQ expr { $$ = make_expr(E_LEQ, binop_as_e(make_binop($1, $3))); }
-     | expr MUL expr { $$ = make_expr(E_MUL, binop_as_e(make_binop($1, $3))); }
-     | expr MOD expr { $$ = make_expr(E_MOD, binop_as_e(make_binop($1, $3))); }
-     | expr DIV expr { $$ = make_expr(E_DIV, binop_as_e(make_binop($1, $3))); }
-     | '{' expr RANGE expr '}' { use_range = true; $$ = make_expr(E_RANGE, binop_as_e(make_binop($2, $4))); }
+expr : INT { ($$ = make_expr(E_VAL))->val.digit = $1; }
+     | IDENT { ($$ = make_expr(E_VAR))->val.ident = $1; }
+     | expr ADD expr { ($$ = make_expr(E_ADD))->val.binop = make_binop($1, $3); }
+     | expr SUB expr { ($$ = make_expr(E_SUB))->val.binop = make_binop($1, $3); }
+     | expr OR expr { ($$ = make_expr(E_OR))->val.binop = make_binop($1, $3); }
+     | expr AND expr { ($$ = make_expr(E_AND))->val.binop = make_binop($1, $3); }
+     | expr EQ expr { ($$ = make_expr(E_EQ))->val.binop = make_binop($1, $3); }
+     | expr GT expr { ($$ = make_expr(E_GT))->val.binop = make_binop($1, $3); }
+     | expr GEQ expr { ($$ = make_expr(E_GEQ))->val.binop = make_binop($1, $3); }
+     | expr LT expr { ($$ = make_expr(E_LT))->val.binop = make_binop($1, $3); }
+     | expr LEQ expr { ($$ = make_expr(E_LEQ))->val.binop = make_binop($1, $3); }
+     | expr MUL expr { ($$ = make_expr(E_MUL))->val.binop = make_binop($1, $3); }
+     | expr MOD expr { ($$ = make_expr(E_MOD))->val.binop = make_binop($1, $3); }
+     | expr DIV expr { ($$ = make_expr(E_DIV))->val.binop = make_binop($1, $3); }
+     | '{' expr RANGE expr '}' {
+        use_range = true;
+        ($$ = make_expr(E_RANGE))->val.binop = make_binop($2, $4); }
      | OPEN expr CLOSE { $$ = $2; }
-     | NOT expr { $$ = make_expr(E_NOT, expr_as_e($2)); }
-     | SUB expr { $$ = make_expr(E_NEG, expr_as_e($2)); }
+     | NOT expr { ($$ = make_expr(E_NOT))->val.subexpr = $2; }
+     | SUB expr { ($$ = make_expr(E_NEG))->val.subexpr = $2; }
      ;
 
 checks : REACH expr checks { ($$ = make_check($2))->next = $3; }

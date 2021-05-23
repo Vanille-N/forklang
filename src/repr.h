@@ -20,15 +20,14 @@ typedef struct {
 
 // an expression
 typedef ExprKind RExprKind;
-typedef union {
-    Var* var;
-    unsigned digit;
-    RBinop* binop;
-    struct RExpr* subexpr;
-} RExprData;
 typedef struct RExpr {
     RExprKind type;
-    RExprData val;
+    union {
+        Var* var;
+        uint digit;
+        RBinop* binop;
+        struct RExpr* subexpr;
+    } val;
 } RExpr;
 
 // an assignment operation

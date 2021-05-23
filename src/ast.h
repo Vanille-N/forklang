@@ -32,14 +32,13 @@ typedef struct {
 
 // a statement
 typedef enum { S_IF, S_DO, S_ASSIGN, S_BREAK, S_SKIP } StmtKind;
-typedef union {
-    Branch* branch;
-    Assign* assign;
-    int _;
-} StmtData;
 typedef struct Stmt {
     StmtKind type;
-    StmtData val;
+    union {
+        Branch* branch;
+        Assign* assign;
+        int _;
+    } val;
     struct Stmt* next;
     uint id;
 } Stmt;
@@ -59,15 +58,14 @@ typedef enum {
     E_MUL, E_MOD, E_DIV,
     E_RANGE,
 } ExprKind;
-typedef union {
-    char* ident;
-    struct Expr* subexpr;
-    Binop* binop;
-    uint digit;
-} ExprData;
 typedef struct Expr {
     ExprKind type;
-    ExprData val;
+    union {
+        char* ident;
+        struct Expr* subexpr;
+        Binop* binop;
+        uint digit;
+    } val;
 } Expr;
 
 #define MATCH_ANY_BINOP() \
@@ -113,17 +111,10 @@ Var* make_ident (char* s, uint id);
 Prog* make_prog (Var* v, Proc* p, Check* c);
 Assign* make_assign (char* s, Expr* e);
 Branch* make_branch (Expr* cond, Stmt* stmt);
-StmtData assign_as_s (Assign* assign);
-StmtData branch_as_s (Branch* branch);
-StmtData null_as_s ();
-Stmt* make_stmt (StmtKind type, StmtData val, uint id);
+Stmt* make_stmt (StmtKind type, uint id);
 Proc* make_proc (char* name, Var* vars, Stmt* stmts);
-ExprData uint_as_e (uint i);
-ExprData expr_as_e (Expr* expr);
 Binop* make_binop (Expr* lhs, Expr* rhs);
-ExprData binop_as_e (Binop* binop);
-ExprData str_as_e (char* ident);
-Expr* make_expr (ExprKind type, ExprData val);
+Expr* make_expr (ExprKind type);
 Check* make_check (Expr* cond);
 
 #endif // AST_H
