@@ -1,6 +1,8 @@
 \section{Level 2}
 
-The chosen representation is as a graph.\\
+The chosen representation is as a graph, with \(u \to v\) if and only
+if there exists an environment in which \(v\) can be reached from \(u\)
+in one execution step (i.e. one assignment or one branching statement).\\
 
 Each statement is represented internally as
 \begin{lstlisting}
@@ -20,7 +22,7 @@ Where:
     \item \ttt{guarded} indicates guarded clauses in the event of an
         \ttt{if} or \ttt{do}
     \item \ttt{unguarded} is either an \ttt{else} for an \ttt{if} or \ttt{do}
-        clause, or the next step to execute.
+        clause, or the next step to execute for a normal statement.
 \end{itemize}~\\
 
 The algorithm for calculating one step of the execution is as follows:
@@ -37,11 +39,12 @@ set up during the translation step in \ttt{repr.c}.\\
 
 This level also includes some pretty-printing facilities.
 
-\input{sample-repr.dump}
+\input{repr.dump}
 
 Note:
 \begin{itemize}
-    \item variables now have a unique identifier as well
+    \item variables now have a unique identifier as well, ensuring that
+        local variable shadows are implemented correctly
     \item the process indicates its entry point which is where the
         execution will start
     \item each statement has a \ttt{[n]} marker which indicates

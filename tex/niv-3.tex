@@ -2,8 +2,12 @@
 
 I chose to implement my own hashset and worklist, in part because I had
 already started working on them when the hashset example was provided.\\
+The hashset uses a congruential linear hash function on variable values and
+states of each process.\\
 
 The worklist is a queue, which ensures that during exhaustive execution each
 path found that satisfies a condition is the shortest possible path.\\
 
-
+With \ttt{\ddash trace}, one can see a computation path that leads to each condition
+(this also applies to the \ttt{\ddash rand} mode).
+\input{trace.dump}

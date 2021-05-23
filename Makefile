@@ -21,23 +21,23 @@ CDEP = $(COBJ:%.o=%.d)
 lang: $(COBJ) $(HCPY) build/lang.tab.c
 	gcc -o $@ $(CFLAGS) $+
 
-build/%.h: src/%.h Makefile |build
+build/%.h: src/%.h |build
 	cp $< $@
 
-build/%.c: src/%.c build/%.h Makefile |build 
+build/%.c: src/%.c build/%.h |build 
 	cp $< $@
 
-build/lex.yy.c: src/lex.l Makefile |build
+build/lex.yy.c: src/lex.l |build
 	lex -o $@ $<
 
-build/lang.tab.c: src/lang.y build/lex.yy.c Makefile |build
+build/lang.tab.c: src/lang.y build/lex.yy.c |build
 	bison -o $@ $< -v --report-file=report.bison
 
 build:
 	mkdir -p build
 	cp src/* build/
 
-valgrind: lang Makefile
+valgrind: lang
 	@for f in assets/*.prog; do \
 		valgrind --track-origins=yes --leak-check=full --show-leak-kinds=all \
 			./lang $$f --all --rand --trace \
@@ -50,7 +50,7 @@ valgrind: lang Makefile
 		fi; \
 	done
 
-README.pdf: tex/*.tex tex/sample-ast.dump tex/sample-repr.dump build/sort.prog.png Makefile
+README.pdf: tex/*.tex tex/ast.dump tex/repr.dump tex/trace.dump assets/sort.prog.png
 	cd tex; \
 	pdflatex \
 		-jobname=README \
@@ -59,23 +59,27 @@ README.pdf: tex/*.tex tex/sample-ast.dump tex/sample-repr.dump build/sort.prog.p
 		main.tex
 	mv {build,.}/README.pdf
 
+
 # sample executions for --ast and --repr
-tex/sample-ast.dump: lang Makefile
-	make FILE=lock ARG=ast create-dump
+tex/ast.dump:
+	make FILE=lock ARG=ast EXTRA= create-dump
 
-tex/sample-repr.dump: lang Makefile
-	make FILE=lock ARG=repr create-dump
+tex/repr.dump:
+	make FILE=lock ARG=repr EXTRA= create-dump
 
-create-dump: lang Makefile
-	CMD="./lang assets/${FILE}.prog --${ARG} -c" ; \
-	DEST="tex/sample-${ARG}.dump" ; \
+tex/trace.dump:
+	make FILE=lock ARG=trace EXTRA=-A create-dump
+
+create-dump: lang
+	CMD="./lang assets/${FILE}.prog --${ARG} ${EXTRA} -c" ; \
+	DEST="tex/${ARG}.dump" ; \
 		echo "Executing $$CMD" ; \
-		echo "\\tbf{Sample}: \\ttt{$$CMD}" > $$DEST ; \
-		echo "\\begin{lstlisting}" >> $$DEST ; \
+		echo "\\begin{lstlisting}" > $$DEST ; \
+		echo "$$ $$CMD" >> $$DEST ; \
 		$$CMD >> $$DEST ; \
 		echo "\\end{lstlisting}" >> $$DEST
 
-build/%prog.png: lang
+assets/sort.prog.png: lang assets/sort.prog
 	./lang assets/sort.prog --dot
 
 clean:
