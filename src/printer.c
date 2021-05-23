@@ -650,6 +650,11 @@ void pp_diff (RProg* prog, Diff* curr, Env env, bool isroot) {
             printf("\n");
         }
     } else {
+        for (uint i = 0; i < prog->nbproc; i++) {
+            printf("%s  | %s%s%s: %s[%d]%s\n",
+                BLUE, PURPLE, prog->procs[i].name, BLACK,
+                RED, prog->procs[i].entrypoint->id, RESET);    
+        }
         pp_env(prog, env);
     }
 }

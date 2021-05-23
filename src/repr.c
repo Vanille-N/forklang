@@ -181,21 +181,21 @@ void tr_stmt (
         case S_BREAK:
             (*out)->nbguarded = 0;
             (*out)->guarded = NULL;
-            if (in->next) {
-                (*out)->unguarded = malloc(sizeof(RStep));
-                register_repr((*out)->unguarded);
-                tr_stmt(
-                    &((*out)->unguarded), in->next,
-                    advance, skipto, breakto); // normal transfer
-                (*out)->advance = true; // advances to `next`
-            } else if (in->type == S_BREAK) {
+            if (in->type == S_BREAK) {
                 // by definition the successor of a S_BREAK is `breakto`
                 (*out)->unguarded = breakto;
                 (*out)->advance = true; // break is always a progress
-            } else {
+            } else if (in->type == S_SKIP) {
                 // similarly the successor of a S_SKIP is `skipto`
                 (*out)->unguarded = skipto;
                 (*out)->advance = advance;
+            } else if (in->next) {
+                (*out)->unguarded = malloc(sizeof(RStep));
+                register_repr((*out)->unguarded);
+                tr_stmt(
+                        &((*out)->unguarded), in->next,
+                        advance, skipto, breakto); // normal transfer
+                (*out)->advance = true; // advances to `next`
             }
             break;
         case S_DO:
