@@ -88,21 +88,26 @@ decls : DECL vars { $$ = $2; }
       ;
 
 // Neat trick to chain together all variables:
+//
 //     var x,y;
 //     var a;
+//
 // is _not_ seen as
-//   (
-//     ('var' START) x (',' SEPARATOR) y
-//   )
-//   (';' SEPARATOR)
-//   (
-//     ('var' START) a
-//   )
-//   (';' TERMINATOR)
+//
+//     (
+//       ('var' START) x (',' SEPARATOR) y
+//     )
+//     (';' SEPARATOR)
+//     (
+//       ('var' START) a
+//     )
+//     (';' TERMINATOR)
+//
 // but rather as
-//   ('var' START)
-//   (x (',' SEPARATOR) y ('; var' SEPARATOR) a)
-//   (';' TERMINATOR)
+//     ('var' START)
+//     (x (',' SEPARATOR) y ('; var' SEPARATOR) a)
+//     (';' TERMINATOR)
+//
 // this results in a list instead of a list of lists, and is
 // much easier to handle
 vars : IDENT SEQ { $$ = make_ident($1, unique_var_id++); }
@@ -186,6 +191,7 @@ int main (int argc, char **argv) {
 	if (!(yyin = fopen(args->fname_src, "r"))) {
         fprintf(stderr, "File not found '%s'\n", args->fname_src);
         show_help(false);
+        free(args);
         exit(2);
     }
     fname_src = args->fname_src;

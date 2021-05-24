@@ -38,12 +38,24 @@ build:
 	cp src/* build/
 
 valgrind: lang
-	@for f in assets/*.prog; do \
+	@F=assets/sort.prog ; \
+		for FLAGS in \
+			"-a $$F" \
+			"-r $$F" \
+			"-d $$F" \
+			"-ard $$F" \
+			"-At $$F" \
+			"-Rt $$F" \
+			"-a" \
+			"-ardARt $$F" \
+			"--invalid" \
+			"-a no-such-file" \
+		; do \
 		valgrind --track-origins=yes --leak-check=full --show-leak-kinds=all \
-			./lang $$f --all --rand --trace \
+			./lang $$f $$FLAGS \
 			1>/dev/null 2>vg.report; \
 		if grep "no leaks are possible" vg.report &>/dev/null; then \
-			echo "With $$f: no leaks are possible"; \
+			echo "With $$FLAGS: no leaks are possible"; \
 		else \
 			cat vg.report; \
 			exit 1; \
@@ -100,4 +112,4 @@ clean:
 	rm -f tex/*.dump
 	rm -rf $(ARCHIVE) $(ARCHIVE).tar.gz
 
-.PHONY: clean tar
+.PHONY: clean tar valgrind

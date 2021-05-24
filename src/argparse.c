@@ -88,6 +88,7 @@ Args* parse_args (int argc, char** argv) {
             } else {
                 fprintf(stderr, "No such option '%s'\n", argv[i]);
                 show_help();
+                free(args);
                 exit(1);
             }
         } else {
@@ -113,6 +114,7 @@ Args* parse_args (int argc, char** argv) {
     if (!args->fname_src) {
         fprintf(stderr, "No file specified\n");
         show_help();
+        free(args);
         exit(1);
     }
     return args;
