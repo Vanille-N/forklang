@@ -130,7 +130,7 @@ int eval_expr (RExpr* expr, Env env) {
                     if (lhs > rhs) return INT_MIN;
                     int pick = lhs + (rand() % (rhs - lhs + 1));
                     return pick;
-                default: UNREACHABLE();
+                default: UNREACHABLE("%d is not a binary operator", expr->type);
             }
         }
         case MATCH_ANY_MONOP(): {
@@ -138,10 +138,10 @@ int eval_expr (RExpr* expr, Env env) {
             switch (expr->type) {
                 case APPLY_MONOP(E_NOT, val);
                 case APPLY_MONOP(E_NEG, val);
-                default: UNREACHABLE();
+                default: UNREACHABLE("%d is not a unary operator", expr->type);
             }
         }
-        default: UNREACHABLE();
+        default: UNREACHABLE("%d is not a valid expr discriminant", expr->type);
     }
 }
 

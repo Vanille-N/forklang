@@ -123,7 +123,7 @@ RExpr* tr_expr (Expr* in) {
         case MATCH_ANY_MONOP():
             out->val.subexpr = tr_expr(in->val.subexpr);
             break;
-        default: UNREACHABLE();
+        default: UNREACHABLE("%d is not a valid expr type", in->type);
     }
     return out;
 }
@@ -254,7 +254,7 @@ void tr_stmt (
                         // `if`: normal break
             }
             break;
-        default: UNREACHABLE();
+        default: UNREACHABLE("%d is not a valid statement discriminant", in->type);
     }
 }
 

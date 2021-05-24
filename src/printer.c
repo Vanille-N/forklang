@@ -39,7 +39,7 @@ const char* str_of_expr_e (ExprKind e) {
         case E_MOD: return "Mod";
         case E_DIV: return "Div";
         case E_RANGE: return "Rng";
-        default: UNREACHABLE();
+        default: UNREACHABLE("%d is not an operator", e);
     }
 }
 
@@ -120,7 +120,7 @@ void pp_stmt (uint indent, Stmt* stmt) {
                 fprintf(fout, "%sSKIP%s\n", CYAN, RESET);
                 break;
             default:
-                UNREACHABLE();
+                UNREACHABLE("%d is not a valid statement discriminant", stmt->type);
         }
         pp_stmt(indent, stmt->next);
     }
@@ -153,7 +153,7 @@ void pp_expr (Expr* expr) {
             fprintf(fout, "%s)%s", GREEN, RESET);
             break;
         default:
-            UNREACHABLE();
+            UNREACHABLE("%d is not a valid expr discriminant", expr->type);
     }
 }
 
@@ -345,7 +345,7 @@ void pp_rexpr (RExpr* expr) {
             fprintf(fout, "%s)%s", GREEN, RESET);
             break;
         default:
-            UNREACHABLE();
+            UNREACHABLE("%d is not a valid expr discriminant", expr->type);
     }
 }
 
@@ -494,7 +494,7 @@ void dot_rexpr (RExpr* expr) {
                 case E_MOD: fprintf(fout, "%%"); break;
                 case E_DIV: fprintf(fout, "/"); break;
                 case E_RANGE: fprintf(fout, ".."); break;
-                default: UNREACHABLE();
+                default: UNREACHABLE("%d is not a binary operator", expr->type);
             }
             dot_rexpr(expr->val.binop->rhs);
             fprintf(fout, ")");
@@ -503,12 +503,12 @@ void dot_rexpr (RExpr* expr) {
             switch (expr->type) {
                 case E_NOT: fprintf(fout, "!"); break;
                 case E_NEG: fprintf(fout, "-"); break;
-                default: UNREACHABLE();
+                default: UNREACHABLE("%d is not a unary operator", expr->type);
             }
             dot_rexpr(expr->val.subexpr);
             break;
         default:
-            UNREACHABLE();
+            UNREACHABLE("%d is not a valid expr discriminant", expr->type);
     }
 }
 
