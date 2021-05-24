@@ -1,0 +1,13 @@
+// foo
+var f;
+// bar
+proc p
+    // baz
+    var x;
+    // quux
+    x := 1 // eggs
+end
+
+// spam
+reach 1
+// frobnify

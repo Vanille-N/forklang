@@ -19,6 +19,7 @@ RStep* tr_branch_list (
     uint* nb, RGuard** loc, Branch* in,
     bool advance, RStep* skipto, RStep* breakto);
 
+bool failed; // exit the translation if something went wrong
 
 // Translate from ast to repr
 // Ast is fine for parsing and for display, but it is poorly suited
@@ -41,6 +42,7 @@ Var* locs;
 char* procname;
 
 RProg* tr_prog (Prog* in) {
+    failed = false;
     RProg* out = malloc(sizeof(RProg));
     register_repr(out);
     out->nbstep = in->nbstmt;
@@ -51,7 +53,11 @@ RProg* tr_prog (Prog* in) {
     globs = out->globs;
     out->nbproc = tr_proc_list(&out->procs, in->procs);
     out->nbcheck = tr_check_list(&out->checks, in->checks);
-    return out;
+    if (failed) {
+        return NULL; // out is still registered for free
+    } else {
+        return out;
+    }
 }
 
 // List to array conversion
@@ -135,7 +141,8 @@ Var* locate_var (char* ident) {
     }
     printf("In %s\n", procname);
     printf("Variable %s is not declared\n", ident);
-    exit(1);
+    failed = true;
+    return NULL;
 }
 
 uint tr_proc_list (RProc** loc, Proc* in) {

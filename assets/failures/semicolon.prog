@@ -1,0 +1,4 @@
+proc p
+    var x;
+    x := 1;
+end

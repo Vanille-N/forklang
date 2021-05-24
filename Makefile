@@ -50,6 +50,8 @@ valgrind: lang
 			"-ardARt $$F" \
 			"--invalid" \
 			"-a no-such-file" \
+			"-a assets/failures/semicolon.prog" \
+			"-r assets/failures/undeclared.prog" \
 		; do \
 		valgrind --track-origins=yes --leak-check=full --show-leak-kinds=all \
 			./lang $$f $$FLAGS \

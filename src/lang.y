@@ -188,6 +188,10 @@ int main (int argc, char **argv) {
         srand((unsigned)(unsigned long long)getpid());
     };
     Args* args = parse_args(argc, argv);
+    if (!args) {
+        // parsing failed
+        exit(2);
+    }
 	if (!(yyin = fopen(args->fname_src, "r"))) {
         fprintf(stderr, "File not found '%s'\n", args->fname_src);
         show_help(false);
@@ -204,6 +208,14 @@ int main (int argc, char **argv) {
         fclose(yyin);
         yylex_destroy();
         // last use of `program
+        if (!repr) {
+            // translation failed, cleanup
+            free_repr();
+            free_var();
+            free_ident();
+            free(args);
+            exit(2); 
+        }
         if (args->flags&SHOW_REPR) pp_repr(stdout, !(args->flags&NO_COLOR), repr);
         if (args->flags&SHOW_DOT) make_dot(args->fname_src, repr);
         if (args->flags&EXEC_RAND) {
@@ -228,6 +240,8 @@ int main (int argc, char **argv) {
     } else {
         fclose(yyin);
         yylex_destroy();
+        free_ast();
+        free_var();
         // parsing failed, cleanup ast anyway
     }
     free(args);
