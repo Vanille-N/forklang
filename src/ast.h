@@ -107,9 +107,9 @@ typedef struct {
 } Prog;
 
 // Builders
-Var* make_ident (char* s, uint id);
-Prog* make_prog (Var* v, Proc* p, Check* c);
-Assign* make_assign (char* s, Expr* e);
+Var* make_ident (char* name, uint id);
+Prog* make_prog (Var* var, Proc* proc, Check* check);
+Assign* make_assign (char* target, Expr* expr);
 Branch* make_branch (Expr* cond, Stmt* stmt);
 Stmt* make_stmt (StmtKind type, uint id);
 Proc* make_proc (char* name, Var* vars, Stmt* stmts);

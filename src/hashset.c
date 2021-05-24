@@ -28,7 +28,6 @@ struct WorkList {
     Record* tail;
 };
 
-
 // Hashes on more that the capacity for fewer
 // structural comparisons
 ull hash (Compute* item) {

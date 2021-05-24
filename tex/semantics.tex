@@ -41,7 +41,9 @@ reach 1 / 0 // unreachable
 \textbf{Range}\\
 In addition, I had some time left to implement as a small extension
 a range operator. It is not available for exhaustive exploration,
-but the Monte-Carlo method supports it.\\
+but the Monte-Carlo method supports it, although since it exponentially
+increases the number of configurations the results may not always be
+accurate if too few iterations are done.\\
 It is best explained by the following example:
 \begin{lstlisting}
 var f,g;

@@ -29,7 +29,7 @@ typedef struct Diff {
     RStep* new_step;
     Var* var_assign;
     int val_assign;
-    uint depth;
+    uint depth; // in order to find shortest path
 } Diff;
 
 Compute* dup_compute (Compute* comp);

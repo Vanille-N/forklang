@@ -5,7 +5,7 @@
 
 // Any file/function/procedure that wishes to make many memory
 // allocations without freeing them at the end of the procedure
-// (i.e. parsing and the ast -> repr conversion) may use a
+// (i.e. parsing, the ast -> repr conversion, trace diffs) may use a
 // MemBlock* variable to record all allocations and perform
 // batch free at a later time.
 typedef struct MemBlock MemBlock;

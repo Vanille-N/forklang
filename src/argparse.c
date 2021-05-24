@@ -38,6 +38,7 @@ void show_help () {
     printf("      lang -h");
 }
 
+// handle argument of the form -XYZ
 uint multiflags (char* c) {
     uint acc = 0;
     for (; *c; c++) {

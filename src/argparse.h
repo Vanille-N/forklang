@@ -3,10 +3,11 @@
 
 #include "prelude.h"
 
+// produce unique increasing bitflags
 enum { COUNTER_BASE = __COUNTER__ };
 #define BITFLAG_UNIQUE(e) e = 1 << (__COUNTER__ - COUNTER_BASE - 1)
 
-typedef enum {
+typedef enum Option {
     BITFLAG_UNIQUE(SHOW_AST),
     BITFLAG_UNIQUE(SHOW_REPR),
     BITFLAG_UNIQUE(SHOW_DOT),

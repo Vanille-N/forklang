@@ -11,8 +11,7 @@ void free_ast () { register_free(&ast_alloc_registry); }
 void free_var () { register_free(&var_alloc_registry); }
 
 // Parse-time expression builders
-// make_X : construct X from essential items
-// X_as_Y : put X inside an union to make it a Y
+// (also handle registering to memblocks)
 
 Var* make_ident (char* name, uint id) {
     Var* var = malloc(sizeof(Var));

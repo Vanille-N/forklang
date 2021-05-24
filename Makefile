@@ -50,6 +50,9 @@ valgrind: lang
 			"-At $$F" \
 			"-Rt $$F" \
 			"-a" \
+			"-" \
+			"--" \
+			"---" \
 			"-ardARt $$F" \
 			"--invalid" \
 			"-a no-such-file" \

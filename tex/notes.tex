@@ -8,7 +8,7 @@
         To facilitate the freeing of ressources I decided that only in
         \ttt{main} could \ttt{exit} be called, and all allocations inside
         a function must either be returned by the function, freed before
-        the end, or added to one of the registries for \ttt{main} to free.\\
+        the end, or added to one of the registries for \ttt{main} (or the caller) to free.\\
         The only exceptions to this rule are \ttt{HashSet} and \ttt{WorkList},
         since they keep track of all their contents and have their fields hidden.\\
 
