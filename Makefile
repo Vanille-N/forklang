@@ -40,6 +40,9 @@ build:
 valgrind: lang
 	@F=assets/sort.prog ; \
 		for FLAGS in \
+			"-b" \
+			"--foo" \
+			"-h" \
 			"-a $$F" \
 			"-r $$F" \
 			"-d $$F" \
@@ -52,6 +55,7 @@ valgrind: lang
 			"-a no-such-file" \
 			"-a assets/failures/semicolon.prog" \
 			"-r assets/failures/undeclared.prog" \
+			"$$F $$F" \
 		; do \
 		valgrind --track-origins=yes --leak-check=full --show-leak-kinds=all \
 			./lang $$f $$FLAGS \

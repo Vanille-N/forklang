@@ -53,7 +53,7 @@ uint multiflags (char* c) {
         }
         if (!opt_flags[j].long_name) {
             fprintf(stderr, "Unknown flag '%c'\n", *c);
-            exit(1);
+            return 0;
         }
     }
     return acc;
@@ -89,7 +89,7 @@ Args* parse_args (int argc, char** argv) {
                 fprintf(stderr, "No such option '%s'\n", argv[i]);
                 show_help();
                 free(args);
-                exit(1);
+                return NULL;
             }
         } else {
             if (args->fname_src) {
@@ -109,13 +109,14 @@ Args* parse_args (int argc, char** argv) {
     }
     if (args->flags&HELP) {
         show_help();
-        exit(0);
+        free(args);
+        return NULL;
     }
     if (!args->fname_src) {
         fprintf(stderr, "No file specified\n");
         show_help();
         free(args);
-        exit(1);
+        return NULL;
     }
     return args;
 }
