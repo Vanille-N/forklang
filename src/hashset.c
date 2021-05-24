@@ -6,6 +6,29 @@ const ull MUL = 1103515245;
 const ull ADD = 12345;
 const ull INIT = 42;
 
+typedef struct Record {
+    Compute* data;
+    ull hash;
+    struct Record* next;
+} Record;
+
+struct HashSet {
+    uint size;
+    Record** records;
+#if HASHSET_SHOW_STATS
+    uint collisions;
+    uint nb_elem;
+#endif // HASHSET_SHOW_STATS
+};
+
+// Queue : new elements at the end
+// -> guarantees shortest path is found
+struct WorkList {
+    Record* head;
+    Record* tail;
+};
+
+
 // Hashes on more that the capacity for fewer
 // structural comparisons
 ull hash (Compute* item) {

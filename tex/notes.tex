@@ -1,17 +1,27 @@
 \section{Other remarks}
 
-I made sure that no memory is leaked by implementing a registry
-that stores a linked list of blocks of memory to free.\\
-More specific information is available in the code.\\
-The \ttt{make valgrind} target will validate the absence of
-possible leaks on a range of valid and invalid inputs.
+\begin{itemize}
+    \item I made sure that no memory is leaked by implementing a registry
+        that stores a linked list of blocks of memory to free.\\
+        More specific information about this is available in the code.\\
 
-One suggested extension was to display the line number in case
-of a parsing error, so I just turned on a few options to get
-verbose error printing and line numbers.\\
+        To facilitate the freeing of ressources I decided that only in
+        \ttt{main} could \ttt{exit} be called, and all allocations inside
+        a function must either be returned by the function, freed before
+        the end, or added to one of the registries for \ttt{main} to free.\\
+        The only exceptions to this rule are \ttt{HashSet} and \ttt{WorkList},
+        since they keep track of all their contents and have their fields hidden.\\
 
-When several variables are declared with the same name, the
-duplicate declarations are ignored. When several procedures are
-declared with the same name it does not affect the computation
-since nothing relies on a procedure's name. It does however impede
-readability of the trace.
+        The \ttt{make valgrind} target will validate the absence of
+        possible leaks on a range of valid and invalid inputs.\\
+
+    \item One suggested extension was to display the line number in case
+        of a parsing error, so I just turned on a few options to get
+        verbose error printing and line numbers.\\
+
+    \item When several variables are declared with the same name, the
+        duplicate declarations are ignored. When several procedures are
+        declared with the same name it does not affect the computation
+        since nothing relies on a procedure's name. It does however impede
+        readability of the trace.
+\end{itemize}

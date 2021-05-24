@@ -1,6 +1,8 @@
 #ifndef MEMREG_H
 #define MEMREG_H
 
+#define MEMREG_SHOW_STATS 0
+
 // Any file/function/procedure that wishes to make many memory
 // allocations without freeing them at the end of the procedure
 // (i.e. parsing and the ast -> repr conversion) may use a

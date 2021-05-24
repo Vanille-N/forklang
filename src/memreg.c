@@ -22,12 +22,25 @@ void register_alloc (MemBlock** registry, void* ptr) {
 }
 
 void register_free (MemBlock** registry) {
+#if MEMREG_SHOW_STATS
+    uint nbblocks = 0;
+    uint nbcells = 0;
+#endif // MEMREG_SHOW_STATS
     while (*registry) {
         MemBlock* tmp = *registry;
         *registry = tmp->next;
         for (uint i = 0; i < tmp->len; i++) free(tmp->block[i]);
+#if MEMREG_SHOW_STATS
+        nbblocks++;
+        nbcells += tmp->len;
+#endif // MEMREG_SHOW_STATS
         free(tmp->block);
         free(tmp);
     }
+#if MEMREG_SHOW_STATS
+    printf("-> %d memory blocks deallocated from %p\n", nbblocks, (void*)registry);
+    printf("   total %d * %d + %d = %d cells\n",
+        nbcells / MBLOCK_SIZE, MBLOCK_SIZE, nbcells % MBLOCK_SIZE, nbcells);
+#endif // MEMREG_SHOW_STATS
 }
 
